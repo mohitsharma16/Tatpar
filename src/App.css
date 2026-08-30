@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Editor layout */
+.editor-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .logo.vite:hover {
   filter: drop-shadow(0 0 2em #747bff);
 }
