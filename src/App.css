@@ -281,11 +281,222 @@ body {
 }
 
 /* ============================================================
-   Editor Layout
+   Editor + Terminal Split Layout
    ============================================================ */
+
+.app-editor-pane {
+  flex: 1 1 60%;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-terminal-pane {
+  flex: 0 0 220px;               /* Fixed initial height */
+  min-height: 100px;
+  max-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
 
 .editor-wrapper {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+/* ============================================================
+   Terminal
+   ============================================================ */
+
+.terminal-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-surface);
+  font-family: var(--font-code);
+  font-size: 12.5px;
+}
+
+/* Terminal header bar */
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.terminal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.terminal-label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* Status badges */
+.terminal-badge {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.terminal-badge--success { background: rgba(78,201,176,0.15); color: var(--success); }
+.terminal-badge--error   { background: rgba(244,135,113,0.15); color: var(--error);   }
+.terminal-badge--timeout { background: rgba(220,220,170,0.15); color: var(--warning); }
+.terminal-badge--running { background: rgba(0,122,204,0.15);   color: var(--accent);  }
+
+.terminal-meta {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Action buttons (Copy / Clear) */
+.terminal-action-btn {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  outline: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+.terminal-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
+/* Body */
+.terminal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-active) transparent;
+}
+
+.terminal-body--idle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-body--output {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Idle / placeholder text */
+.terminal-idle-text {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.terminal-idle-text--success {
+  color: var(--success);
+}
+
+kbd {
+  font-family: var(--font-code);
+  font-size: 11px;
+  background: var(--bg-active);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-secondary);
+}
+
+/* Output text blocks */
+.terminal-output {
+  font-family: var(--font-code);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.terminal-output--stdout {
+  color: var(--text-primary);
+}
+
+.terminal-output--stderr {
+  color: var(--error);
+}
+
+.terminal-output--timeout {
+  color: var(--warning);
+}
+
+/* Footer row */
+.terminal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.terminal-exit-code {
+  font-family: var(--font-code);
+  font-size: 11px;
+}
+
+.terminal-exit-code--success { color: var(--success); }
+.terminal-exit-code--error   { color: var(--error);   }
+.terminal-exit-code--timeout { color: var(--warning); }
+
+.terminal-timestamp {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Running spinner (inside terminal idle body) */
+.terminal-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--bg-active);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
 }
