@@ -12,9 +12,16 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "tatpar",
-        "width": 800,
-        "height": 600
+        "width": 600,
+        "height": 700,
+        "minWidth": 400,
+        "minHeight": 500,
+        "resizable": true,
+        "alwaysOnTop": true,
+        "decorations": true,
+        "center": true
       }
     ],
     "security": {
