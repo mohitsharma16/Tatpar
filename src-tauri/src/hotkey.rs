@@ -68,24 +68,9 @@ fn toggle_window(app: &AppHandle) {
 
 // ─── Settings Reader ─────────────────────────────────────────
 
-/// Read the hotkey string from settings.json synchronously.
+/// Read the hotkey string from the settings database.
 fn read_hotkey_setting(app: &AppHandle) -> String {
-    let path = app
-        .path()
-        .app_data_dir()
-        .expect("No app data dir")
-        .join("settings.json");
-
-    if let Ok(json) = std::fs::read_to_string(&path) {
-        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&json) {
-            if let Some(hotkey) = value["hotkey"].as_str() {
-                return hotkey.to_string();
-            }
-        }
-    }
-
-    // Default
-    "ctrl+shift+space".to_string()
+    crate::settings::read_hotkey(app)
 }
 
 // ─── Hotkey String Parser ─────────────────────────────────────

@@ -17,11 +17,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
-            // ── Load persisted settings (must exist before anything below
-            //    reads hotkey/window settings from disk) ────────────────
-            if let Err(e) = settings::init_settings(app.handle()) {
-                eprintln!("[Tatpar] Failed to init settings: {e}");
-            }
+            // ── Open the settings database (must happen before anything
+            //    below reads hotkey/window settings) ────────────────────
+            app.manage(settings::init(app.handle()));
 
             // ── System tray ───────────────────────────────
             if let Err(e) = tray::setup_tray(app.handle()) {
