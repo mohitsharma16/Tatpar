@@ -201,4 +201,6 @@ export interface AppState {
   panel: PanelView;
   /** User settings */
   settings: Settings;
+  /** Runtime availability map — populated on startup via check_languages */
+  languageAvailability: Partial<Record<LanguageId, boolean>>;
 }

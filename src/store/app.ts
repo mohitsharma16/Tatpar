@@ -41,6 +41,9 @@ interface AppActions {
   // Settings
   setSettings: (settings: Partial<Settings>) => void;
   resetSettings: () => void;
+
+  // Language availability (populated on startup via check_languages)
+  setLanguageAvailability: (availability: Partial<Record<LanguageId, boolean>>) => void;
 }
 
 type AppStore = AppState & AppActions;
@@ -63,6 +66,8 @@ export const useAppStore = create<AppStore>()(
       history: [],
       panel: "editor",
       settings: DEFAULT_SETTINGS,
+      // All optimistically assumed available until check_languages resolves
+      languageAvailability: {} as Partial<Record<LanguageId, boolean>>,
 
       // ─── Language ─────────────────────────────────────────
       setActiveLanguage: (language) => {
@@ -105,6 +110,12 @@ export const useAppStore = create<AppStore>()(
         })),
 
       resetSettings: () => set({ settings: DEFAULT_SETTINGS }),
+
+      // ─── Language Availability ────────────────────────────
+      setLanguageAvailability: (availability) =>
+        set((state) => ({
+          languageAvailability: { ...state.languageAvailability, ...availability },
+        })),
     }),
     {
       name: "Tatpar-app-state",
@@ -138,3 +149,7 @@ export const useExecutionResult = () => useAppStore((s) => s.executionResult);
 
 /** Returns user settings */
 export const useSettings = () => useAppStore((s) => s.settings);
+
+/** Returns the language availability map from check_languages */
+export const useLanguageAvailability = () =>
+  useAppStore((s) => s.languageAvailability);
