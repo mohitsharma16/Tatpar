@@ -1,4 +1,4 @@
-import { ChevronDown, Sun, Moon, Play, TriangleAlert } from "lucide-react";
+import { ChevronDown, Sun, Moon, Play, TriangleAlert, Settings as SettingsIcon } from "lucide-react";
 import { useAppStore, useActiveLanguage, useSettings, useLanguageAvailability } from "../../store/app";
 import { LANGUAGE_LIST } from "../../types";
 import type { LanguageId } from "../../types";
@@ -22,6 +22,11 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
   const settings = useSettings();
   const setSettings = useAppStore((s) => s.setSettings);
   const availability = useLanguageAvailability();
+  const panel = useAppStore((s) => s.panel);
+  const setPanel = useAppStore((s) => s.setPanel);
+  const isSettingsOpen = panel === "settings";
+
+  const toggleSettings = () => setPanel(isSettingsOpen ? "editor" : "settings");
 
   const isDark = settings.theme === "dark";
   const avail = availability[activeLanguage.id as LanguageId];
@@ -92,6 +97,18 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
             aria-label="Toggle theme"
           >
             {isDark ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+
+          {/* Settings toggle */}
+          <button
+            id="settings-toggle"
+            className={`icon-btn${isSettingsOpen ? " icon-btn--active" : ""}`}
+            onClick={toggleSettings}
+            title={isSettingsOpen ? "Close settings" : "Open settings"}
+            aria-label="Toggle settings"
+            aria-pressed={isSettingsOpen}
+          >
+            <SettingsIcon size={15} />
           </button>
 
           {/* Run / Stop toggle */}
