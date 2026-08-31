@@ -130,11 +130,6 @@ body {
   flex-shrink: 0;
 }
 
-.header-logo {
-  font-size: 16px;
-  line-height: 1;
-}
-
 .header-title {
   font-size: 13px;
   font-weight: 600;
@@ -392,9 +387,42 @@ body {
 }
 
 .editor-wrapper {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Centered "Tatpar" watermark, faint behind the code — non-interactive */
+.editor-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-primary);
+  opacity: 0.06;
+  pointer-events: none;
+  user-select: none;
+}
+
+.editor-watermark-en {
+  font-family: var(--font-ui);
+  font-size: clamp(40px, 7.5vw, 84px);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  /* optically re-center the tracked-out text (trailing letter-spacing bias) */
+  margin-left: 0.2em;
+}
+
+.editor-watermark-hi {
+  font-family: 'Nirmala UI', 'Noto Sans Devanagari', var(--font-ui);
+  font-size: clamp(20px, 3vw, 34px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
 
 /* ============================================================
