@@ -21,7 +21,8 @@
         "resizable": true,
         "alwaysOnTop": true,
         "decorations": true,
-        "center": true
+        "center": true,
+        "visible": false
       }
     ],
     "trayIcon": {

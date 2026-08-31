@@ -86,8 +86,9 @@ fn settings_path(app: &AppHandle) -> std::path::PathBuf {
 
 // ─── Init ─────────────────────────────────────────────────────
 
-/// Called once on app startup to ensure settings file exists.
-pub async fn init_settings(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+/// Called once on app startup (synchronously, before window setup) to
+/// ensure the settings file exists.
+pub fn init_settings(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let path = settings_path(app);
     if !path.exists() {
         if let Some(parent) = path.parent() {
@@ -101,26 +102,70 @@ pub async fn init_settings(app: &AppHandle) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
+/// Read settings from disk synchronously. Returns defaults if missing/corrupt.
+pub fn read_settings_sync(app: &AppHandle) -> Settings {
+    let path = settings_path(app);
+    std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|json| serde_json::from_str(&json).ok())
+        .unwrap_or_default()
+}
+
+/// Read just the window settings synchronously — used to restore window
+/// geometry at startup before the frontend has loaded.
+pub fn read_window_settings(app: &AppHandle) -> WindowSettings {
+    read_settings_sync(app).window
+}
+
+/// Update only the window geometry (x, y, width, height) on disk, leaving
+/// every other setting — including `window.always_on_top` — untouched.
+///
+/// Geometry is owned by the native window-event tracker in `window.rs`, so
+/// this is the only writer for those four fields; `save_settings` (driven by
+/// the frontend) deliberately never touches them, which avoids a stale
+/// in-memory copy of the window rect clobbering a position the user just
+/// dragged the window to.
+pub fn persist_window_geometry(
+    app: &AppHandle,
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    let mut settings = read_settings_sync(app);
+    settings.window.x = Some(x);
+    settings.window.y = Some(y);
+    settings.window.width = width;
+    settings.window.height = height;
+    write_settings_sync(app, &settings)
+}
+
+fn write_settings_sync(app: &AppHandle, settings: &Settings) -> Result<(), String> {
+    let path = settings_path(app);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let json = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
+    std::fs::write(&path, json).map_err(|e| e.to_string())
+}
+
 // ─── Tauri Commands ───────────────────────────────────────────
 
 /// Load settings from disk. Returns defaults if file is missing/corrupt.
 #[command]
 pub async fn load_settings(app: AppHandle) -> Result<Settings, String> {
-    let path = settings_path(&app);
-    if !path.exists() {
-        return Ok(Settings::default());
-    }
-    let json = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&json).map_err(|e| format!("Failed to parse settings: {e}"))
+    Ok(read_settings_sync(&app))
 }
 
-/// Save settings to disk.
+/// Save settings to disk. Window geometry (x/y/width/height) is preserved
+/// from the existing file regardless of what the caller sends — see
+/// `persist_window_geometry` for why.
 #[command]
-pub async fn save_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
-    let path = settings_path(&app);
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-    std::fs::write(&path, json).map_err(|e| e.to_string())
+pub async fn save_settings(app: AppHandle, mut settings: Settings) -> Result<(), String> {
+    let on_disk = read_settings_sync(&app);
+    settings.window.x = on_disk.window.x;
+    settings.window.y = on_disk.window.y;
+    settings.window.width = on_disk.window.width;
+    settings.window.height = on_disk.window.height;
+    write_settings_sync(&app, &settings)
 }
