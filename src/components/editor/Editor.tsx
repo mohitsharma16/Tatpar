@@ -71,6 +71,10 @@ export function Editor({ onChange }: EditorProps) {
           },
         }}
       />
+      <div className="editor-watermark" aria-hidden="true">
+        <span className="editor-watermark-en">TATPAR</span>
+        <span className="editor-watermark-hi">तत्पर</span>
+      </div>
     </div>
   );
 }

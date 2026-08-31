@@ -1,6 +1,8 @@
+import { ChevronDown, Sun, Moon, Play, TriangleAlert } from "lucide-react";
 import { useAppStore, useActiveLanguage, useSettings, useLanguageAvailability } from "../../store/app";
 import { LANGUAGE_LIST } from "../../types";
 import type { LanguageId } from "../../types";
+import { Logo } from "./Logo";
 
 // ============================================================
 // Tatpar — Header / Toolbar Component
@@ -34,8 +36,8 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
     dotState === "ok"
       ? `${activeLanguage.name} runtime found on PATH`
       : dotState === "missing"
-      ? `${activeLanguage.name} runtime not found — run to see install hint`
-      : "Checking runtime availability…";
+        ? `${activeLanguage.name} runtime not found — run to see install hint`
+        : "Checking runtime availability…";
 
   const toggleTheme = () => setSettings({ theme: isDark ? "light" : "dark" });
 
@@ -48,8 +50,8 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
       <header className="tatpar-header">
         {/* App branding */}
         <div className="header-brand">
-          <span className="header-logo">⚡</span>
-          <span className="header-title">tatpar</span>
+          <Logo size={20} />
+          <span className="header-title">Tatpar</span>
         </div>
 
         {/* Controls */}
@@ -71,7 +73,7 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
                   </option>
                 ))}
               </select>
-              <span className="lang-picker-arrow">▾</span>
+              <ChevronDown className="lang-picker-arrow" size={13} aria-hidden="true" />
             </div>
             {/* Colored dot shows runtime status for the SELECTED language */}
             <span
@@ -89,7 +91,7 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
             aria-label="Toggle theme"
           >
-            {isDark ? "☀️" : "🌙"}
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
 
           {/* Run / Stop toggle */}
@@ -112,7 +114,7 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
               title="Run code (Ctrl+Enter)"
               aria-label="Run code"
             >
-              <span aria-hidden="true">▶</span>
+              <Play size={13} fill="currentColor" aria-hidden="true" />
               Run
             </button>
           )}
@@ -122,7 +124,7 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
       {/* Runtime not found warning bar — only shown when runtime is confirmed absent */}
       {showWarning && !isRunning && (
         <div className="runtime-warning" role="alert">
-          <span className="runtime-warning-icon">⚠</span>
+          <TriangleAlert className="runtime-warning-icon" size={14} aria-hidden="true" />
           <span>
             <strong>{activeLanguage.name}</strong> runtime not found on PATH.
             Click Run to see the install instructions.

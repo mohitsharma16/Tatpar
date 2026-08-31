@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tatpar",
+  "productName": "Tatpar",
   "version": "0.1.0",
   "identifier": "com.mohit.tatpar",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "tatpar",
+        "title": "Tatpar",
         "width": 600,
         "height": 700,
         "minWidth": 400,
