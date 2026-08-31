@@ -4,7 +4,7 @@
 // visibility. Works even while the window is hidden.
 // ============================================================
 
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 // ─── Public API ───────────────────────────────────────────────
@@ -21,7 +21,7 @@ pub fn register_global_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error:
 
     app.global_shortcut().on_shortcut(shortcut, |app, _shortcut, event| {
         if event.state() == ShortcutState::Pressed {
-            toggle_window(app);
+            crate::window::toggle_visibility(app);
         }
     })?;
 
@@ -43,27 +43,13 @@ pub async fn update_hotkey(app: AppHandle, hotkey: String) -> Result<(), String>
     app.global_shortcut()
         .on_shortcut(shortcut, |app, _shortcut, event| {
             if event.state() == ShortcutState::Pressed {
-                toggle_window(app);
+                crate::window::toggle_visibility(app);
             }
         })
         .map_err(|e| e.to_string())?;
 
     println!("[Tatpar] Hotkey updated to: {hotkey}");
     Ok(())
-}
-
-// ─── Toggle Helper ────────────────────────────────────────────
-
-fn toggle_window(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let visible = window.is_visible().unwrap_or(false);
-        if visible {
-            let _ = window.hide();
-        } else {
-            let _ = window.show();
-            let _ = window.set_focus();
-        }
-    }
 }
 
 // ─── Settings Reader ─────────────────────────────────────────

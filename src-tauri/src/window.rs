@@ -169,6 +169,44 @@ fn is_position_reachable(window: &WebviewWindow, x: i32, y: i32) -> bool {
     })
 }
 
+// ─── Visibility Helpers ────────────────────────────────────────
+//
+// Shared by the global hotkey and the tray icon so both agree on what
+// "toggle"/"show" mean for a minimized window.
+
+/// Toggle the main window between hidden and shown.
+///
+/// A minimized window still reports `is_visible() == true` on Windows —
+/// naively treating that as "already shown" and calling `hide()` would
+/// vanish it into the tray instead of restoring it, leaving the hotkey/tray
+/// click looking like it did nothing while the window sits minimized.
+pub fn toggle_visibility(app: &AppHandle) {
+    let Ok(window) = get_main_window(app) else { return };
+
+    if window.is_minimized().unwrap_or(false) {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    } else if window.is_visible().unwrap_or(false) {
+        let _ = window.hide();
+    } else {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// Unconditionally bring the main window to the front, restoring it first
+/// if it's minimized. Used by the tray's "Show" menu item.
+pub fn show_and_focus(app: &AppHandle) {
+    let Ok(window) = get_main_window(app) else { return };
+
+    if window.is_minimized().unwrap_or(false) {
+        let _ = window.unminimize();
+    }
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
 // ─── Helpers ─────────────────────────────────────────────────
 
 fn get_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {

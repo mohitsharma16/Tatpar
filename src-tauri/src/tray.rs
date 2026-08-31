@@ -7,7 +7,7 @@
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager,
+    AppHandle,
 };
 
 // ─── Public API ───────────────────────────────────────────────
@@ -27,9 +27,10 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(false) // left-click = toggle, right-click = menu
         .on_menu_event(|app, event| match event.id.as_ref() {
-            "show" => show_window(app),
+            "show" => crate::window::show_and_focus(app),
             "quit" => {
                 println!("[Tatpar] Quit via tray menu");
+                crate::window::flush_pending_geometry(app);
                 app.exit(0);
             }
             _ => {}
@@ -42,27 +43,11 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
                 ..
             } = event
             {
-                let app = tray.app_handle();
-                if let Some(window) = app.get_webview_window("main") {
-                    if window.is_visible().unwrap_or(false) {
-                        let _ = window.hide();
-                    } else {
-                        show_window(app);
-                    }
-                }
+                crate::window::toggle_visibility(tray.app_handle());
             }
         })
         .build(app)?;
 
     println!("[Tatpar] System tray ready");
     Ok(())
-}
-
-// ─── Helpers ─────────────────────────────────────────────────
-
-fn show_window(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.show();
-        let _ = window.set_focus();
-    }
 }
