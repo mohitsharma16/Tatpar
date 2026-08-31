@@ -1,50 +1,58 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect } from "react";
+import { Editor } from "./components/editor/Editor";
+import { Header } from "./components/ui/Header";
+import { Terminal } from "./components/terminal/Terminal";
+import { useAppStore } from "./store/app";
+import { useExecution } from "./hooks/useExecution";
+import { useSettings } from "./hooks/useSettings";
+import { checkLanguages } from "./api/tauri";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const activeLanguage = useAppStore((s) => s.activeLanguage);
+  const code = useAppStore((s) => s.codePerLanguage[s.activeLanguage]);
+  const setExecutionResult = useAppStore((s) => s.setExecutionResult);
+  const setLanguageAvailability = useAppStore((s) => s.setLanguageAvailability);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const { run, cancel, isRunning } = useExecution();
+  const { settings, load: loadSettings } = useSettings();
+
+  // On startup: load settings + check which runtimes are available
+  useEffect(() => {
+    loadSettings();
+
+    checkLanguages()
+      .then(setLanguageAvailability)
+      .catch((err) => console.warn("[Tatpar] check_languages failed:", err));
+  }, []);
+
+  const handleRun = () => {
+    run(activeLanguage, code);
+  };
+
+  const handleClear = () => {
+    setExecutionResult(null);
+  };
+
+  // Listen for Ctrl+Enter dispatched by Monaco editor
+  useEffect(() => {
+    const handler = () => handleRun();
+    window.addEventListener("tatpar:run", handler);
+    return () => window.removeEventListener("tatpar:run", handler);
+  }, [activeLanguage, code]);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <div className={`app-root ${settings.theme}`}>
+      <Header onRun={handleRun} onCancel={cancel} isRunning={isRunning} />
+      <main className="app-main">
+        <div className="app-editor-pane">
+          <Editor />
+        </div>
+        <div className="app-terminal-pane">
+          <Terminal onClear={handleClear} />
+        </div>
+      </main>
+    </div>
   );
 }
 

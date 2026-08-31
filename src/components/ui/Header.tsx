@@ -1,0 +1,134 @@
+import { useAppStore, useActiveLanguage, useSettings, useLanguageAvailability } from "../../store/app";
+import { LANGUAGE_LIST } from "../../types";
+import type { LanguageId } from "../../types";
+
+// ============================================================
+// Tatpar — Header / Toolbar Component
+// Language picker · Run/Stop button · Theme toggle
+// Availability indicator: colored dot beside the picker
+// ============================================================
+
+interface HeaderProps {
+  onRun: () => void;
+  onCancel: () => void;
+  isRunning: boolean;
+}
+
+export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
+  const activeLanguage = useActiveLanguage();
+  const setActiveLanguage = useAppStore((s) => s.setActiveLanguage);
+  const settings = useSettings();
+  const setSettings = useAppStore((s) => s.setSettings);
+  const availability = useLanguageAvailability();
+
+  const isDark = settings.theme === "dark";
+  const avail = availability[activeLanguage.id as LanguageId];
+  // undefined = not yet checked (optimistic); true = ok; false = missing
+  const showWarning = avail === false;
+
+  // Status dot state for the current language
+  const dotState: "ok" | "missing" | "checking" =
+    avail === true ? "ok" : avail === false ? "missing" : "checking";
+
+  const dotTitle =
+    dotState === "ok"
+      ? `${activeLanguage.name} runtime found on PATH`
+      : dotState === "missing"
+      ? `${activeLanguage.name} runtime not found — run to see install hint`
+      : "Checking runtime availability…";
+
+  const toggleTheme = () => setSettings({ theme: isDark ? "light" : "dark" });
+
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setActiveLanguage(e.target.value as LanguageId);
+  };
+
+  return (
+    <>
+      <header className="tatpar-header">
+        {/* App branding */}
+        <div className="header-brand">
+          <span className="header-logo">⚡</span>
+          <span className="header-title">tatpar</span>
+        </div>
+
+        {/* Controls */}
+        <div className="header-controls">
+          {/* Language picker + availability dot */}
+          <div className="lang-picker-group">
+            <div className="lang-picker-wrapper">
+              <select
+                id="language-picker"
+                className="lang-picker"
+                value={activeLanguage.id}
+                onChange={handleLanguageChange}
+                disabled={isRunning}
+                title="Select language"
+              >
+                {LANGUAGE_LIST.map((lang) => (
+                  <option key={lang.id} value={lang.id}>
+                    {lang.name}
+                  </option>
+                ))}
+              </select>
+              <span className="lang-picker-arrow">▾</span>
+            </div>
+            {/* Colored dot shows runtime status for the SELECTED language */}
+            <span
+              className={`lang-status-dot lang-status-dot--${dotState}`}
+              title={dotTitle}
+              aria-label={dotTitle}
+            />
+          </div>
+
+          {/* Theme toggle */}
+          <button
+            id="theme-toggle"
+            className="icon-btn"
+            onClick={toggleTheme}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label="Toggle theme"
+          >
+            {isDark ? "☀️" : "🌙"}
+          </button>
+
+          {/* Run / Stop toggle */}
+          {isRunning ? (
+            <button
+              id="stop-btn"
+              className="stop-btn"
+              onClick={onCancel}
+              title="Stop execution"
+              aria-label="Stop execution"
+            >
+              <span className="run-spinner" aria-hidden="true" />
+              Stop
+            </button>
+          ) : (
+            <button
+              id="run-btn"
+              className="run-btn"
+              onClick={onRun}
+              title="Run code (Ctrl+Enter)"
+              aria-label="Run code"
+            >
+              <span aria-hidden="true">▶</span>
+              Run
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Runtime not found warning bar — only shown when runtime is confirmed absent */}
+      {showWarning && !isRunning && (
+        <div className="runtime-warning" role="alert">
+          <span className="runtime-warning-icon">⚠</span>
+          <span>
+            <strong>{activeLanguage.name}</strong> runtime not found on PATH.
+            Click Run to see the install instructions.
+          </span>
+        </div>
+      )}
+    </>
+  );
+}

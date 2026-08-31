@@ -1,8 +1,8 @@
 [package]
 name = "tatpar"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Tatpar — A persistent floating code editor"
+authors = ["Mohit"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -23,3 +23,9 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# Execution engine dependencies
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+tempfile = "3"
+tokio = { version = "1", features = ["full"] }
+which = "7"
