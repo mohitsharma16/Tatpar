@@ -1,12 +1,12 @@
 // ============================================================
 // Tatpar — TypeScript Executor
 // Compiles with `tsc` (or npx tsc) then runs with `node`
+// On Windows, tsc and npx are .cmd files — use new_command()
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process};
+use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
-use tokio::process::Command;
 use chrono::Utc;
 
 pub struct TypeScriptExecutor;
@@ -27,9 +27,11 @@ impl LanguageExecutor for TypeScriptExecutor {
             ));
         }
 
-        // Prefer global tsc, fall back to npx tsc (needs node)
-        let use_npx = which::which("tsc").is_err();
-        if use_npx && which::which("npx").is_err() {
+        // Prefer global tsc, fall back to npx tsc
+        let use_tsc = which::which("tsc").is_ok();
+        let use_npx = !use_tsc && which::which("npx").is_ok();
+
+        if !use_tsc && !use_npx {
             return Ok(missing_runtime_result(
                 "tsc / npx",
                 "Install TypeScript globally: `npm install -g typescript`",
@@ -42,12 +44,13 @@ impl LanguageExecutor for TypeScriptExecutor {
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
         // ── Step 1: Compile ──────────────────────────────────────
+        // new_command wraps tsc.cmd / npx.cmd in `cmd /C` on Windows
         let mut compile = if use_npx {
-            let mut c = Command::new("npx");
+            let mut c = new_command("npx");
             c.arg("tsc");
             c
         } else {
-            Command::new("tsc")
+            new_command("tsc")
         };
 
         compile
@@ -79,7 +82,7 @@ impl LanguageExecutor for TypeScriptExecutor {
 
         // ── Step 2: Run with node ────────────────────────────────
         let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000).max(2);
-        let mut run_cmd = Command::new("node");
+        let mut run_cmd = new_command("node");
         run_cmd.arg(&out);
         let run_result = run_process(run_cmd, remaining, cancel).await;
 

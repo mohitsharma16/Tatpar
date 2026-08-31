@@ -4,10 +4,9 @@
 // NOTE: filename must be Main.java (class must be named Main)
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process};
+use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
-use tokio::process::Command;
 use chrono::Utc;
 
 pub struct JavaExecutor;
@@ -33,7 +32,7 @@ impl LanguageExecutor for JavaExecutor {
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
         // ── Step 1: Compile ──────────────────────────────────────
-        let mut compile = Command::new("javac");
+        let mut compile = new_command("javac");
         compile.arg(&src);
         let compile_result = run_process(compile, timeout_secs, Arc::clone(&cancel)).await;
 
@@ -58,7 +57,7 @@ impl LanguageExecutor for JavaExecutor {
 
         // ── Step 2: Run (classpath = temp dir, class = Main) ─────
         let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000).max(2);
-        let mut run_cmd = Command::new("java");
+        let mut run_cmd = new_command("java");
         run_cmd.arg("-cp").arg(workspace.path()).arg("Main");
         let run_result = run_process(run_cmd, remaining, cancel).await;
 

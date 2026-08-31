@@ -1,12 +1,12 @@
 // ============================================================
 // Tatpar — Kotlin Executor
 // Compiles with `kotlinc` and runs with `java -jar`
+// On Windows, kotlinc is a .bat file — must use new_command()
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process};
+use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
-use tokio::process::Command;
 use chrono::Utc;
 
 pub struct KotlinExecutor;
@@ -34,9 +34,8 @@ impl LanguageExecutor for KotlinExecutor {
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
         // ── Step 1: Compile ──────────────────────────────────────
-        // kotlinc can be slow on first run (JVM startup ~5-15s).
-        // We give it the full timeout; run gets whatever is left.
-        let mut compile = Command::new("kotlinc");
+        // new_command wraps kotlinc.bat in `cmd /C` on Windows
+        let mut compile = new_command("kotlinc");
         compile
             .arg(&src)
             .arg("-include-runtime")
@@ -46,7 +45,6 @@ impl LanguageExecutor for KotlinExecutor {
         let compile_result = run_process(compile, timeout_secs, Arc::clone(&cancel)).await;
 
         if compile_result.status != "success" {
-            // Annotate compiler errors so the terminal shows context
             return Ok(ExecutionResult {
                 stderr: format!("[Compile error]\n{}", compile_result.stderr),
                 ..compile_result
@@ -66,15 +64,12 @@ impl LanguageExecutor for KotlinExecutor {
         }
 
         // ── Step 2: Run ──────────────────────────────────────────
-        let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000);
-        let run_timeout = remaining.max(2); // always allow at least 2s to run
-
-        let mut run_cmd = Command::new("java");
+        let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000).max(2);
+        let mut run_cmd = new_command("java");
         run_cmd.arg("-jar").arg(&jar);
 
-        let run_result = run_process(run_cmd, run_timeout, cancel).await;
+        let run_result = run_process(run_cmd, remaining, cancel).await;
 
-        // Combine compile duration + run duration in the reported result
         Ok(ExecutionResult {
             duration_ms: compile_result.duration_ms + run_result.duration_ms,
             ..run_result

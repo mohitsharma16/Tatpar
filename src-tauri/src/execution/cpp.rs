@@ -3,7 +3,7 @@
 // Compiles with `g++` (or `clang++`) and runs the binary
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process};
+use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use tokio::process::Command;
@@ -37,7 +37,7 @@ impl LanguageExecutor for CppExecutor {
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
         // ── Step 1: Compile ──────────────────────────────────────
-        let mut compile = Command::new(compiler);
+        let mut compile = new_command(compiler);
         compile
             .arg(&src)
             .arg("-o").arg(&bin)

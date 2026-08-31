@@ -76,6 +76,34 @@ pub fn cancelled_result() -> ExecutionResult {
     }
 }
 
+/// Create a Command for the given program, correctly handling Windows
+/// `.bat` / `.cmd` wrappers (kotlinc, tsc, npx, etc.) by routing them
+/// through `cmd /C`. On Windows these scripts cannot be spawned directly
+/// by a Rust process — they need the shell interpreter.
+///
+/// Additional arguments should be appended to the returned Command as
+/// normal (they are passed after the script path to cmd /C).
+pub fn new_command(program: &str) -> Command {
+    // Try to resolve the full path first so we can inspect the extension.
+    if let Ok(resolved) = which::which(program) {
+        let ext = resolved
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(str::to_lowercase);
+
+        if matches!(ext.as_deref(), Some("bat") | Some("cmd")) {
+            // Must run Windows batch/cmd scripts via the shell
+            let mut cmd = Command::new("cmd");
+            cmd.arg("/C").arg(resolved);
+            return cmd;
+        }
+        // Real executable (.exe or no extension on Unix)
+        return Command::new(resolved);
+    }
+    // which() failed — return a Command that will produce a clear OS error
+    Command::new(program)
+}
+
 /// Run a subprocess with a timeout; capture stdout/stderr.
 pub async fn run_process(
     mut cmd: Command,
