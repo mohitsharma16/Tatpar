@@ -29,7 +29,7 @@ Tatpar is a persistent, floating code editor that lives on your desktop. Launch 
  
 #### Installation
  
-1. Download [Tatpar-0.1.0.msi](https://github.com/YOUR_USERNAME/tatpar/releases)
+1. Download [Tatpar-0.1.0.msi](https://github.com/mohitsharma16/tatpar/releases)
 2. Run the installer
 3. Press `Ctrl+Shift+Space` to open Tatpar
 #### First Run
@@ -148,7 +148,7 @@ Access settings via the **⚙️ icon** in the header:
  
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/tatpar.git
+git clone https://github.com/mohitsharma16/tatpar.git
 cd tatpar
  
 # Install dependencies
@@ -223,9 +223,9 @@ MIT License — See [LICENSE](./LICENSE) for details
 ### 📞 Support
  
 - 📖 [Documentation](./docs/)
-- 🐛 [Report a Bug](https://github.com/YOUR_USERNAME/tatpar/issues)
-- ✨ [Request a Feature](https://github.com/YOUR_USERNAME/tatpar/issues)
-- 💬 [Discussions](https://github.com/YOUR_USERNAME/tatpar/discussions)
+- 🐛 [Report a Bug](https://github.com/mohitsharma16/tatpar/issues)
+- ✨ [Request a Feature](https://github.com/mohitsharma16/tatpar/issues)
+- 💬 [Discussions](https://github.com/mohitsharma16/tatpar/discussions)
 ### 🙏 Acknowledgments
  
 Built with:
