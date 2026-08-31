@@ -199,6 +199,35 @@ body {
   font-size: 10px;
 }
 
+/* Language picker + status dot grouped together */
+.lang-picker-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Availability status dot — shown beside the language picker */
+.lang-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background var(--transition);
+  cursor: help;
+}
+
+.lang-status-dot--ok      { background: var(--success); }
+.lang-status-dot--missing { background: var(--error);   }
+.lang-status-dot--checking {
+  background: var(--text-muted);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
 /* ── Icon Button (theme toggle) ── */
 
 .icon-btn {

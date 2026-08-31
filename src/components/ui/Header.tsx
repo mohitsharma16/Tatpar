@@ -4,7 +4,8 @@ import type { LanguageId } from "../../types";
 
 // ============================================================
 // Tatpar — Header / Toolbar Component
-// Language picker · Run/Stop button · Theme toggle · Status dots
+// Language picker · Run/Stop button · Theme toggle
+// Availability indicator: colored dot beside the picker
 // ============================================================
 
 interface HeaderProps {
@@ -21,9 +22,20 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
   const availability = useLanguageAvailability();
 
   const isDark = settings.theme === "dark";
-  const isAvailable = availability[activeLanguage.id as LanguageId];
-  // undefined = not yet checked (optimistic); false = confirmed missing
-  const showWarning = isAvailable === false;
+  const avail = availability[activeLanguage.id as LanguageId];
+  // undefined = not yet checked (optimistic); true = ok; false = missing
+  const showWarning = avail === false;
+
+  // Status dot state for the current language
+  const dotState: "ok" | "missing" | "checking" =
+    avail === true ? "ok" : avail === false ? "missing" : "checking";
+
+  const dotTitle =
+    dotState === "ok"
+      ? `${activeLanguage.name} runtime found on PATH`
+      : dotState === "missing"
+      ? `${activeLanguage.name} runtime not found — run to see install hint`
+      : "Checking runtime availability…";
 
   const toggleTheme = () => setSettings({ theme: isDark ? "light" : "dark" });
 
@@ -42,27 +54,31 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
 
         {/* Controls */}
         <div className="header-controls">
-          {/* Language picker */}
-          <div className="lang-picker-wrapper">
-            <select
-              id="language-picker"
-              className="lang-picker"
-              value={activeLanguage.id}
-              onChange={handleLanguageChange}
-              disabled={isRunning}
-              title="Select language"
-            >
-              {LANGUAGE_LIST.map((lang) => {
-                const avail = availability[lang.id as LanguageId];
-                const dot = avail === true ? "●" : avail === false ? "○" : "";
-                return (
+          {/* Language picker + availability dot */}
+          <div className="lang-picker-group">
+            <div className="lang-picker-wrapper">
+              <select
+                id="language-picker"
+                className="lang-picker"
+                value={activeLanguage.id}
+                onChange={handleLanguageChange}
+                disabled={isRunning}
+                title="Select language"
+              >
+                {LANGUAGE_LIST.map((lang) => (
                   <option key={lang.id} value={lang.id}>
-                    {dot ? `${dot} ${lang.name}` : lang.name}
+                    {lang.name}
                   </option>
-                );
-              })}
-            </select>
-            <span className="lang-picker-arrow">▾</span>
+                ))}
+              </select>
+              <span className="lang-picker-arrow">▾</span>
+            </div>
+            {/* Colored dot shows runtime status for the SELECTED language */}
+            <span
+              className={`lang-status-dot lang-status-dot--${dotState}`}
+              title={dotTitle}
+              aria-label={dotTitle}
+            />
           </div>
 
           {/* Theme toggle */}
@@ -76,7 +92,7 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
             {isDark ? "☀️" : "🌙"}
           </button>
 
-          {/* Run / Stop button — morphs while running */}
+          {/* Run / Stop toggle */}
           {isRunning ? (
             <button
               id="stop-btn"
@@ -103,13 +119,13 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
         </div>
       </header>
 
-      {/* Runtime not found warning bar */}
+      {/* Runtime not found warning bar — only shown when runtime is confirmed absent */}
       {showWarning && !isRunning && (
         <div className="runtime-warning" role="alert">
           <span className="runtime-warning-icon">⚠</span>
           <span>
             <strong>{activeLanguage.name}</strong> runtime not found on PATH.
-            Run anyway to see the install hint.
+            Click Run to see the install instructions.
           </span>
         </div>
       )}
