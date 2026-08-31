@@ -1,235 +1,174 @@
 # Tatpar तत्पर
- 
-> Always ready to run.  
-> हमेशा चलाने के लिए तैयार।
- 
-A floating code editor that runs anywhere. Write code in **Kotlin, Python, Java, JavaScript, TypeScript, C++** and more — without opening an IDE.
- 
+
+> **Always ready to run.**  
+> **हमेशा चलाने के लिए तैयार।**
+
+A persistent, floating desktop code scratchpad built with **Tauri v2**, **React 19**, and **Rust**. Write and execute code instantly in **Kotlin, Python, Java, JavaScript, TypeScript, and C++** — without opening a heavy IDE.
+
 ---
- 
-## English Version
- 
-### 🎯 What is Tatpar?
- 
-Tatpar is a persistent, floating code editor that lives on your desktop. Launch it instantly with a global keyboard shortcut (`Ctrl+Shift+Space`) and run code in multiple languages locally, seeing output instantly.
- 
-**Core Idea:** Write. Run. Done. No IDE, no complexity.
- 
-### ⚡ Features
- 
-- **🪟 Floating Window** — Always accessible with `Ctrl+Shift+Space`
-- **⚡ Instant Launch** — Opens in <500ms
-- **🔧 Multiple Languages** — Kotlin, Python, Java, JavaScript, TypeScript, C++
-- **🎨 Dark/Light Themes** — Easy on the eyes
-- **🏠 Local Execution** — Your code never leaves your machine
-- **🔒 Privacy-First** — No tracking, no accounts, no telemetry
-- **⚙️ Customizable** — Hotkey, theme, compiler paths
-- **🎯 Always Ready** — Window persists exactly where you left it
-### 🚀 Quick Start
- 
-#### Installation
- 
-1. Download [Tatpar-0.1.0.msi](https://github.com/mohitsharma16/tatpar/releases)
-2. Run the installer
-3. Press `Ctrl+Shift+Space` to open Tatpar
-#### First Run
- 
-The editor opens with a default Kotlin example:
- 
-```kotlin
-fun main() {
-    println("Hello, Tatpar!")
-}
-```
- 
-Press ▶ or `Ctrl+Enter` to execute.
- 
-**Output:**
-```
-Hello, Tatpar!
-```
- 
-### 💻 Supported Languages (v0.1)
- 
-| Language | Status | Example |
-|----------|--------|---------|
-| **Kotlin** | ✅ Full Support | `println("Hello")` |
-| **Python** | ✅ Full Support | `print("Hello")` |
-| **Java** | ✅ Full Support | `System.out.println("Hello");` |
-| **JavaScript** | ✅ Full Support | `console.log("Hello");` |
-| **TypeScript** | ✅ Full Support | `console.log("Hello");` |
-| **C++** | ✅ Full Support | `std::cout << "Hello";` |
-| **HTML/CSS** | 🔜 Coming in v0.2 | Browser rendering |
- 
-### 🎮 Usage Examples
- 
-#### Quick Testing
- 
-```python
-# In any application, press Ctrl+Shift+Space
-# Tatpar appears, already open to Python
- 
-numbers = [1, 2, 3, 4, 5]
-print(sum(numbers))
- 
-# Press ▶ Run
-# Output: 15
-```
- 
-#### Algorithm Practice
- 
-```javascript
-// Learning data structures?
-function mergeSort(arr) {
-    if (arr.length <= 1) return arr;
-    const mid = Math.floor(arr.length / 2);
-    const left = mergeSort(arr.slice(0, mid));
-    const right = mergeSort(arr.slice(mid));
-    
-    return merge(left, right);
-}
- 
-function merge(left, right) {
-    const result = [];
-    while (left.length && right.length) {
-        result.push(left[0] <= right[0] ? left.shift() : right.shift());
-    }
-    return [...result, ...left, ...right];
-}
- 
-console.log(mergeSort([5, 2, 8, 1, 9]));
-// Output: [1, 2, 5, 8, 9]
-```
- 
-#### Stack Overflow Code Testing
- 
-Found a solution on Stack Overflow? Test it instantly without leaving the browser:
-1. Copy code
-2. Press `Ctrl+Shift+Space`
-3. Paste and run
-4. Back to browser in 10 seconds
-### ⚙️ Settings
- 
-Access settings via the **⚙️ icon** in the header:
- 
-- **Language Selection** — Choose your language
-- **Hotkey** — Customize the global shortcut
-- **Theme** — Dark (default) or Light
-- **Compiler Paths** — Auto-detected, but customizable
-- **Execution Timeout** — Default 10s, adjustable per language
-- **Always on Top** — Toggle persistent floating
-- **Launch on Startup** — Optional
-### 🔒 Security & Privacy
- 
-**What Tatpar Does:**
-- ✅ Executes code locally on your machine
-- ✅ Shows you all output
-- ✅ Respects your privacy
-**What Tatpar Doesn't Do:**
-- ❌ Send your code anywhere
-- ❌ Track your activity
-- ❌ Require user accounts
-- ❌ Collect analytics
-- ❌ Access files outside temp directory
-**Code Execution Safety:**
-- Code runs with your user permissions (no admin needed)
-- 10-second execution timeout (prevents infinite loops)
-- Isolated temporary workspace
-- Automatic cleanup after execution
-### 🛠️ Development
- 
-#### Prerequisites
- 
-- Node.js 18+
-- Rust 1.70+
-- pnpm
-- Git
-#### Setup
- 
+
+## ⚡ Features
+
+- **🪟 Persistent Floating Window** — Stays on top and available whenever inspiration strikes.
+- **⚡ Instant Local Execution** — Built in Rust with minimal overhead; run code snippets with `Ctrl+Enter`.
+- **🛑 Live Process Cancellation** — Dedicated **Stop** button to immediately terminate long-running processes or infinite loops.
+- **🟢 Runtime Availability Indicator** — Automatic real-time detection checking system `PATH` for required compilers and interpreters with visual status indicators.
+- **🔧 6 Built-in Language Executors** — Kotlin, Python, Java, JavaScript, TypeScript, and C++.
+- **🎨 Dark & Light Themes** — High-contrast, polished UI tailored for day and night coding sessions.
+- **🔒 Local & Privacy-First** — 100% offline local execution in temporary sandboxed workspaces; zero telemetry or external network requests.
+- **⚙️ Configurable Execution** — Customizable execution timeouts (default 10s), theme toggling, and compiler paths.
+
+---
+
+## 🚀 Quick Start
+
+### Installation
+
+1. Download the latest release (`Tatpar-*.msi` / installer) from [GitHub Releases](https://github.com/mohitsharma16/tatpar/releases).
+2. Run the installer to set up **Tatpar**.
+3. Launch Tatpar (or use global hotkey `Ctrl+Shift+Space`).
+
+### First Run
+
+1. Select your target programming language from the top toolbar.
+2. Observe the status dot next to the picker:
+   - 🟢 **Green**: Runtime compiler/interpreter found on `PATH`.
+   - 🔴 **Red**: Compiler/interpreter missing on `PATH` (shows warning bar).
+3. Write your code in the Monaco editor.
+4. Press **▶ Run** or hit `Ctrl+Enter` to execute.
+
+---
+
+## 💻 Supported Languages & System Runtimes
+
+Tatpar executes code locally using installed compilers and interpreters on your system `PATH`:
+
+| Language | File Ext | Required CLI Runtime | Default Example Snippet | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Kotlin** | `.kt` | `kotlinc` (+ `java`) | `println("Hello, Tatpar!")` | ✅ Full Support |
+| **Python** | `.py` | `python` / `python3` | `print("Hello, Tatpar!")` | ✅ Full Support |
+| **Java** | `.java` | `javac` (+ `java`) | `System.out.println("Hello, Tatpar!");` | ✅ Full Support |
+| **JavaScript** | `.js` | `node` | `console.log("Hello, Tatpar!");` | ✅ Full Support |
+| **TypeScript** | `.ts` | `tsc` / `npx` | `console.log("Hello, Tatpar!");` | ✅ Full Support |
+| **C++** | `.cpp` | `g++` / `clang++` | `std::cout << "Hello, Tatpar!";` | ✅ Full Support |
+
+---
+
+## ⌨️ Key Shortcuts
+
+| Shortcut | Action |
+| :--- | :--- |
+| `Ctrl+Enter` | Run active code in editor |
+| `Ctrl+Shift+Space` | Global hotkey / Toggle window visibility |
+
+---
+
+## 🔒 Security & Privacy
+
+- **Local Execution Only**: All code runs strictly on your machine under user-level permissions.
+- **Timeout Protection**: Default 10-second process timeout prevents runaway scripts or CPU locks.
+- **Isolated Workspace**: Code executes in temporary files isolated to system temp folders and automatically cleaned up.
+- **Zero Telemetry**: No tracking, analytics, user accounts, or external network requests.
+
+---
+
+## 🛠️ Development Setup
+
+### Prerequisites
+
+- **Node.js** (v18+)
+- **pnpm** (v8+)
+- **Rust & Cargo** (v1.70+)
+- **Git**
+
+### Clone & Setup
+
 ```bash
 # Clone repository
 git clone https://github.com/mohitsharma16/tatpar.git
 cd tatpar
- 
+
 # Install dependencies
 pnpm install
- 
-# Start development
+
+# Start development server with Tauri
 pnpm tauri dev
 ```
- 
-#### Build for Release
- 
+
+### Build Production Package
+
 ```bash
 pnpm tauri build
 ```
- 
-Output: `src-tauri/target/release/bundle/msi/Tatpar-*.msi`
- 
-### 📋 Roadmap
- 
-**v0.1 (9 weeks)** — Current
-- ✅ Floating window
-- ✅ 6 languages (Kotlin, Python, Java, JS, TS, C++)
-- ✅ Dark/Light themes
-- ✅ Global hotkey
-- ✅ Settings persistence
-**v0.2**
-- Editor themes (Catppuccin, Dracula, etc.)
-- Language management UI
-- Code templates
-- macOS support
-**v0.3**
-- Community language plugins
-- Advanced execution (stdin, network)
-- Execution history export
-- Linux support
-**v1.0**
-- Cloud sync (Tatpar Pro)
-- Team collaboration
-- AI code assistant
-- Remote execution
-### 🤝 Contributing
- 
-We love contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
- 
-#### Add a New Language
- 
-The language architecture is designed for community contributions:
- 
+
+Built release artifacts will be placed in `src-tauri/target/release/bundle/`.
+
+---
+
+## 🤝 Adding a New Language Executor
+
+Tatpar's backend architecture uses modular language executors in Rust (`src-tauri/src/execution/`):
+
 ```rust
-// 1. Create src-tauri/src/execution/rust.rs
-pub struct RustExecutor { /* ... */ }
- 
-impl Language for RustExecutor {
-    fn name(&self) -> &str { "Rust" }
-    fn id(&self) -> &str { "rust" }
-    fn execute(&self, code: &str) -> Result<ExecutionResult, String> {
-        // Implement execution
+// 1. Define your executor in src-tauri/src/execution/your_language.rs
+pub struct YourLanguageExecutor;
+
+impl YourLanguageExecutor {
+    pub async fn execute(
+        &self,
+        code: &str,
+        timeout_secs: u64,
+        cancel_flag: Arc<Mutex<bool>>,
+    ) -> Result<ExecutionResult, String> {
+        // Implement temporary file creation, CLI execution, timeout & cancellation handling
     }
 }
- 
-// 2. Register in src-tauri/src/execution/mod.rs
-// 3. Test locally
-// 4. Submit PR
+
+// 2. Register executor in src-tauri/src/execution/mod.rs
+// 3. Add runtime PATH check in check_languages()
+// 4. Update language definitions in src/types/index.ts
 ```
- 
-See [CONTRIBUTING.md](./CONTRIBUTING.md#adding-a-new-language) for detailed steps.
- 
-### 📝 License
- 
-MIT License — See [LICENSE](./LICENSE) for details
- 
-### 📞 Support
- 
-- 📖 [Documentation](./docs/)
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+- **Desktop Framework**: [Tauri v2](https://tauri.app/)
+- **Frontend Framework**: [React 19](https://react.dev/) with [TypeScript 5.8](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite 7](https://vitejs.dev/)
+- **Code Editor**: [Monaco Editor](https://microsoft.github.io/monaco-editor/) (`@monaco-editor/react`)
+- **State Management**: [Zustand 5](https://github.com/pmndrs/zustand)
+- **Styling**: [TailwindCSS v4](https://tailwindcss.com/) + [Lucide Icons](https://lucide.dev/)
+- **Backend & Execution**: [Rust](https://www.rust-lang.org/) with Tokio async runtime & `which` crate
+
+---
+
+## 📋 Roadmap
+
+- **v0.1** *(Current)*
+  - ✅ Persistent floating window with light/dark themes
+  - ✅ 6 core language executors (Kotlin, Python, Java, JS, TS, C++)
+  - ✅ Live execution cancellation (Stop button)
+  - ✅ Automatic runtime PATH detection & availability indicators
+  - ✅ Monaco editor integration with `Ctrl+Enter` shortcut
+- **v0.2**
+  - 🔜 Custom editor themes (Dracula, Catppuccin, One Dark)
+  - 🔜 Stdin input support for interactive console apps
+  - 🔜 Code snippet bookmarking & template library
+- **v0.3**
+  - 🔜 Community language plugin support (Rust, Go, Ruby, PHP)
+  - 🔜 Multi-tab scratchpad sessions
+
+---
+
+## 📝 License
+
+MIT License — see [LICENSE](./LICENSE) for details.
+
+---
+
+## 📞 Support & Community
+
 - 🐛 [Report a Bug](https://github.com/mohitsharma16/tatpar/issues)
 - ✨ [Request a Feature](https://github.com/mohitsharma16/tatpar/issues)
-- 💬 [Discussions](https://github.com/mohitsharma16/tatpar/discussions)
-### 🙏 Acknowledgments
- 
-Built with:
-- [Tauri](https://tauri.app/) — Desktop framework
-- [React](https://react.dev/) — UI framework
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) — Code editor
-- [Rust](https://www.rust-lang.org/) — Backend
+- 💬 [GitHub Discussions](https://github.com/mohitsharma16/tatpar/discussions)
