@@ -1,5 +1,5 @@
 // ============================================================
-// CodeFloat — Java Executor
+// Tatpar — Java Executor
 // Compiles with `javac` and runs with `java`
 // Wraps top-level code in a Main class if needed
 // ============================================================

@@ -1,5 +1,5 @@
 // ============================================================
-// CodeFloat — JavaScript Executor
+// Tatpar — JavaScript Executor
 // Runs directly with `node`
 // ============================================================
 

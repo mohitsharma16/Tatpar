@@ -1,5 +1,5 @@
 // ============================================================
-// CodeFloat — Language Trait + Shared Types
+// Tatpar — Language Trait + Shared Types
 // All language executors implement LanguageExecutor.
 // ExecutionResult, ExecutionRequest, and ExecutionState are
 // defined here and re-exported via execution/mod.rs.
@@ -15,6 +15,7 @@ use chrono::Utc;
 // ─── Shared Types ─────────────────────────────────────────────
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExecutionRequest {
     pub language: String,
     pub code: String,
@@ -22,6 +23,7 @@ pub struct ExecutionRequest {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExecutionResult {
     pub stdout: String,
     pub stderr: String,
@@ -56,7 +58,7 @@ pub trait LanguageExecutor: Send + Sync {
 /// Create an isolated temporary directory for one execution.
 pub fn create_temp_workspace() -> Result<tempfile::TempDir, String> {
     tempfile::Builder::new()
-        .prefix("codefloat_")
+        .prefix("Tatpar_")
         .tempdir()
         .map_err(|e| format!("Failed to create temp workspace: {e}"))
 }

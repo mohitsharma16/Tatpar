@@ -1,5 +1,5 @@
 // ============================================================
-// CodeFloat — TypeScript Executor
+// Tatpar — TypeScript Executor
 // Compiles with `tsc` (or npx tsc) then runs with `node`
 // ============================================================
 

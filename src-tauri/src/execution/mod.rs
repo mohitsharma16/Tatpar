@@ -1,5 +1,5 @@
 // ============================================================
-// CodeFloat — Execution Engine (mod.rs)
+// Tatpar — Execution Engine (mod.rs)
 // Dispatches execution requests to per-language executors
 // ============================================================
 

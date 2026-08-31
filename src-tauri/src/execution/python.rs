@@ -1,5 +1,5 @@
 // ============================================================
-// CodeFloat — Python Executor
+// Tatpar — Python Executor
 // Runs directly with `python3` or `python`
 // ============================================================
 

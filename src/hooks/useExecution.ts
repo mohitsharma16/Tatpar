@@ -1,14 +1,13 @@
 import { useCallback } from "react";
 import { useAppStore } from "../store/app";
+import { executeCode } from "../api/tauri";
 import type { LanguageId } from "../types";
 
 // ============================================================
 // Tatpar — useExecution Hook
 // Encapsulates all code-execution logic.
-//
-// Phase 1: stub that logs and marks isRunning = false.
-// Phase 2: will call the Tauri execute_code command and handle
-//          streaming output, timeout, and cancellation.
+// Phase 2: calls the real Tauri execute_code Rust command.
+// Phase 3: will add cancellation + streaming output.
 // ============================================================
 
 export interface UseExecutionReturn {
@@ -31,24 +30,17 @@ export function useExecution(): UseExecutionReturn {
       setExecutionResult(null);
 
       try {
-        // ── Phase 2: replace this block with the real Tauri invoke ──
-        // const result = await executeCode({ language, code, timeoutSecs: 10 });
-        //
-        // For now, simulate a short delay so the UI running state is visible
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        // ── Real Tauri invocation ──────────────────────────────
+        const result = await executeCode({
+          language,
+          code,
+          timeoutSecs: 10,
+        });
 
-        const stub = {
-          stdout: "",
-          stderr: "[Phase 2] Execution engine not yet connected.",
-          exitCode: null,
-          durationMs: 600,
-          status: "error" as const,
-          timestamp: new Date().toISOString(),
-        };
-
-        setExecutionResult(stub);
-        addToHistory({ language, code, result: stub });
+        setExecutionResult(result);
+        addToHistory({ language, code, result });
       } catch (err) {
+        // Surface Rust-side errors (e.g. compiler not found)
         const errorResult = {
           stdout: "",
           stderr: String(err),
@@ -66,7 +58,7 @@ export function useExecution(): UseExecutionReturn {
   );
 
   const cancel = useCallback(() => {
-    // Phase 2: will call cancelExecution() Tauri command
+    // Phase 3: will call cancelExecution() Tauri command
     setRunning(false);
   }, [setRunning]);
 

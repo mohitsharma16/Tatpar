@@ -1,5 +1,5 @@
 // ============================================================
-// CodeFloat — Kotlin Executor
+// Tatpar — Kotlin Executor
 // Compiles with `kotlinc` and runs with `java -jar`
 // ============================================================
 
