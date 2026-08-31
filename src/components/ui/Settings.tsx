@@ -201,7 +201,6 @@ export function SettingsPanel() {
             <span className="settings-about-key">Global Hotkey</span>
             <div className="settings-about-val">
               <kbd className="settings-kbd">{settings.hotkey.replace(/\+/g, " + ").toUpperCase()}</kbd>
-              <span className="settings-badge-coming">customization coming soon</span>
             </div>
 
             <span className="settings-about-key">Framework</span>
