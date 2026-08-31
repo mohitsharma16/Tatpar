@@ -1,13 +1,12 @@
 import { useCallback } from "react";
 import { useAppStore } from "../store/app";
-import { executeCode } from "../api/tauri";
+import { executeCode, cancelExecution } from "../api/tauri";
 import type { LanguageId } from "../types";
 
 // ============================================================
 // Tatpar — useExecution Hook
-// Encapsulates all code-execution logic.
-// Phase 2: calls the real Tauri execute_code Rust command.
-// Phase 3: will add cancellation + streaming output.
+// Phase 2: real Tauri execute_code invocation.
+// Phase 3: cancel() now calls cancel_execution on the Rust side.
 // ============================================================
 
 export interface UseExecutionReturn {
@@ -30,7 +29,6 @@ export function useExecution(): UseExecutionReturn {
       setExecutionResult(null);
 
       try {
-        // ── Real Tauri invocation ──────────────────────────────
         const result = await executeCode({
           language,
           code,
@@ -40,7 +38,6 @@ export function useExecution(): UseExecutionReturn {
         setExecutionResult(result);
         addToHistory({ language, code, result });
       } catch (err) {
-        // Surface Rust-side errors (e.g. compiler not found)
         const errorResult = {
           stdout: "",
           stderr: String(err),
@@ -58,7 +55,12 @@ export function useExecution(): UseExecutionReturn {
   );
 
   const cancel = useCallback(() => {
-    // Phase 3: will call cancelExecution() Tauri command
+    // Signal the Rust backend to set the cancel flag.
+    // The executor checks this flag and terminates early.
+    cancelExecution().catch((err) =>
+      console.warn("[Tatpar] cancel_execution failed:", err)
+    );
+    // Optimistically mark as not running immediately in the UI
     setRunning(false);
   }, [setRunning]);
 

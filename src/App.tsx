@@ -14,7 +14,7 @@ function App() {
   const setExecutionResult = useAppStore((s) => s.setExecutionResult);
   const setLanguageAvailability = useAppStore((s) => s.setLanguageAvailability);
 
-  const { run, isRunning } = useExecution();
+  const { run, cancel, isRunning } = useExecution();
   const { settings, load: loadSettings } = useSettings();
 
   // On startup: load settings + check which runtimes are available
@@ -43,7 +43,7 @@ function App() {
 
   return (
     <div className={`app-root ${settings.theme}`}>
-      <Header onRun={handleRun} isRunning={isRunning} />
+      <Header onRun={handleRun} onCancel={cancel} isRunning={isRunning} />
       <main className="app-main">
         <div className="app-editor-pane">
           <Editor />

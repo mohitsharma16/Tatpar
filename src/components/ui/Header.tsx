@@ -4,15 +4,16 @@ import type { LanguageId } from "../../types";
 
 // ============================================================
 // Tatpar — Header / Toolbar Component
-// Language picker · Run button · Theme toggle · Status dots
+// Language picker · Run/Stop button · Theme toggle · Status dots
 // ============================================================
 
 interface HeaderProps {
   onRun: () => void;
+  onCancel: () => void;
   isRunning: boolean;
 }
 
-export function Header({ onRun, isRunning }: HeaderProps) {
+export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
   const activeLanguage = useActiveLanguage();
   const setActiveLanguage = useAppStore((s) => s.setActiveLanguage);
   const settings = useSettings();
@@ -24,9 +25,7 @@ export function Header({ onRun, isRunning }: HeaderProps) {
   // undefined = not yet checked (optimistic); false = confirmed missing
   const showWarning = isAvailable === false;
 
-  const toggleTheme = () => {
-    setSettings({ theme: isDark ? "light" : "dark" });
-  };
+  const toggleTheme = () => setSettings({ theme: isDark ? "light" : "dark" });
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setActiveLanguage(e.target.value as LanguageId);
@@ -50,6 +49,7 @@ export function Header({ onRun, isRunning }: HeaderProps) {
               className="lang-picker"
               value={activeLanguage.id}
               onChange={handleLanguageChange}
+              disabled={isRunning}
               title="Select language"
             >
               {LANGUAGE_LIST.map((lang) => {
@@ -76,32 +76,35 @@ export function Header({ onRun, isRunning }: HeaderProps) {
             {isDark ? "☀️" : "🌙"}
           </button>
 
-          {/* Run button */}
-          <button
-            id="run-btn"
-            className={`run-btn ${isRunning ? "run-btn--running" : ""}`}
-            onClick={onRun}
-            disabled={isRunning}
-            title="Run code (Ctrl+Enter)"
-            aria-label={isRunning ? "Running…" : "Run code"}
-          >
-            {isRunning ? (
-              <>
-                <span className="run-spinner" aria-hidden="true" />
-                Running…
-              </>
-            ) : (
-              <>
-                <span aria-hidden="true">▶</span>
-                Run
-              </>
-            )}
-          </button>
+          {/* Run / Stop button — morphs while running */}
+          {isRunning ? (
+            <button
+              id="stop-btn"
+              className="stop-btn"
+              onClick={onCancel}
+              title="Stop execution"
+              aria-label="Stop execution"
+            >
+              <span className="run-spinner" aria-hidden="true" />
+              Stop
+            </button>
+          ) : (
+            <button
+              id="run-btn"
+              className="run-btn"
+              onClick={onRun}
+              title="Run code (Ctrl+Enter)"
+              aria-label="Run code"
+            >
+              <span aria-hidden="true">▶</span>
+              Run
+            </button>
+          )}
         </div>
       </header>
 
       {/* Runtime not found warning bar */}
-      {showWarning && (
+      {showWarning && !isRunning && (
         <div className="runtime-warning" role="alert">
           <span className="runtime-warning-icon">⚠</span>
           <span>
