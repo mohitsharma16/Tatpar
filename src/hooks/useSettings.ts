@@ -45,13 +45,7 @@ export function useSettings(): UseSettingsReturn {
   const load = useCallback(async () => {
     try {
       const persisted = await loadSettings();
-      // Map Rust snake_case fields to camelCase TypeScript types
-      setSettings({
-        hotkey: persisted.hotkey,
-        theme: persisted.theme as Settings["theme"],
-        editorFontSize: persisted.editorFontSize ?? 14,
-        launchOnStartup: persisted.launchOnStartup ?? false,
-      });
+      setSettings(persisted);
     } catch (err) {
       console.error("[Tatpar] Failed to load settings:", err);
     }

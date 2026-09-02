@@ -13,6 +13,7 @@ use tauri::{command, AppHandle, Manager};
 // ─── Types (mirror src/types/index.ts) ───────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LanguageSettings {
     pub timeout_secs: u64,
     pub network_enabled: bool,
@@ -30,6 +31,7 @@ impl Default for LanguageSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WindowSettings {
     pub width: u32,
     pub height: u32,
@@ -51,6 +53,7 @@ impl Default for WindowSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub hotkey: String,
     pub theme: String,
