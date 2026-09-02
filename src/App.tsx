@@ -3,6 +3,7 @@ import { Editor } from "./components/editor/Editor";
 import { Header } from "./components/ui/Header";
 import { Terminal } from "./components/terminal/Terminal";
 import { SettingsPanel } from "./components/ui/Settings";
+import { HistoryPanel } from "./components/history/History";
 import { useAppStore } from "./store/app";
 import { useExecution } from "./hooks/useExecution";
 import { useSettings } from "./hooks/useSettings";
@@ -49,6 +50,8 @@ function App() {
       <main className="app-main">
         {panel === "settings" ? (
           <SettingsPanel />
+        ) : panel === "history" ? (
+          <HistoryPanel />
         ) : (
           <>
             <div className="app-editor-pane">

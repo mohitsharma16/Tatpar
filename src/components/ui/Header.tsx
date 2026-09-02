@@ -1,4 +1,4 @@
-import { ChevronDown, Sun, Moon, Play, TriangleAlert, Settings as SettingsIcon } from "lucide-react";
+import { ChevronDown, Sun, Moon, Play, TriangleAlert, Settings as SettingsIcon, History as HistoryIcon } from "lucide-react";
 import { useAppStore, useActiveLanguage, useSettings, useLanguageAvailability } from "../../store/app";
 import { LANGUAGE_LIST } from "../../types";
 import type { LanguageId } from "../../types";
@@ -6,7 +6,7 @@ import { Logo } from "./Logo";
 
 // ============================================================
 // Tatpar — Header / Toolbar Component
-// Language picker · Run/Stop button · Theme toggle
+// Language picker · Run/Stop button · Theme toggle · History · Settings
 // Availability indicator: colored dot beside the picker
 // ============================================================
 
@@ -25,8 +25,10 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const isSettingsOpen = panel === "settings";
+  const isHistoryOpen = panel === "history";
 
   const toggleSettings = () => setPanel(isSettingsOpen ? "editor" : "settings");
+  const toggleHistory = () => setPanel(isHistoryOpen ? "editor" : "history");
 
   const isDark = settings.theme === "dark";
   const avail = availability[activeLanguage.id as LanguageId];
@@ -97,6 +99,18 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
             aria-label="Toggle theme"
           >
             {isDark ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+
+          {/* History toggle */}
+          <button
+            id="history-toggle"
+            className={`icon-btn${isHistoryOpen ? " icon-btn--active" : ""}`}
+            onClick={toggleHistory}
+            title={isHistoryOpen ? "Close history (Esc or Ctrl+H)" : "View execution history (Ctrl+H)"}
+            aria-label="Toggle execution history"
+            aria-pressed={isHistoryOpen}
+          >
+            <HistoryIcon size={15} />
           </button>
 
           {/* Settings toggle */}

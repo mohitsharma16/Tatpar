@@ -25,11 +25,20 @@ export function useKeyboardShortcuts({ onRun, onClear }: KeyboardShortcutsProps)
         target?.tagName === "TEXTAREA" ||
         target?.isContentEditable;
 
-      // ── Escape: Close settings modal / Return to editor ──
+      // ── Escape: Close settings or history modal / Return to editor ──
       if (e.key === "Escape") {
-        if (panel === "settings") {
+        if (panel !== "editor") {
           e.preventDefault();
           setPanel("editor");
+          return;
+        }
+      }
+
+      // ── Ctrl+H : Toggle Execution History ─────────────────
+      if ((e.ctrlKey || e.metaKey) && (e.key === "h" || e.key === "H")) {
+        if (!isInput) {
+          e.preventDefault();
+          setPanel(panel === "history" ? "editor" : "history");
           return;
         }
       }
