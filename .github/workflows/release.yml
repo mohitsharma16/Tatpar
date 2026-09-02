@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Build & Release Tatpar
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tatpar application
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Tatpar ${{ github.ref_name }}"
+          releaseBody: |
+            See the assets below to download **Tatpar ${{ github.ref_name }}** for Windows.
+
+            ### 🚀 Features in this Release:
+            - Floating persistent code editor running on top of any window
+            - Instant multi-language support (Kotlin, Python, Java, JavaScript, TypeScript, C++)
+            - Global hotkey (`Ctrl+Shift+Space`) and system tray integration
+            - SQLite settings storage & window bounds memory
+            - Execution history panel & rapid snippet recall (`Ctrl+H`)
+            - Copy output feedback & global shortcuts
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
