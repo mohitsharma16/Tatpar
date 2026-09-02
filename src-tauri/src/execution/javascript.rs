@@ -18,19 +18,26 @@ impl LanguageExecutor for JavaScriptExecutor {
         code: &str,
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
+        compiler_path: Option<String>,
     ) -> Result<ExecutionResult, String> {
-        if which::which("node").is_err() {
-            return Ok(missing_runtime_result(
-                "node",
-                "Install Node.js: https://nodejs.org/",
-            ));
-        }
+        let node_cmd = match compiler_path {
+            Some(ref path) => path.clone(),
+            None => {
+                if which::which("node").is_err() {
+                    return Ok(missing_runtime_result(
+                        "node",
+                        "Install Node.js: https://nodejs.org/",
+                    ));
+                }
+                "node".to_string()
+            }
+        };
 
         let workspace = create_temp_workspace()?;
         let src = workspace.path().join("main.js");
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
-        let mut cmd = Command::new("node");
+        let mut cmd = Command::new(&node_cmd);
         cmd.arg(&src);
         Ok(run_process(cmd, timeout_secs, cancel).await)
     }

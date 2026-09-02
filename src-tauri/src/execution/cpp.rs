@@ -18,17 +18,22 @@ impl LanguageExecutor for CppExecutor {
         code: &str,
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
+        compiler_path: Option<String>,
     ) -> Result<ExecutionResult, String> {
-        // Prefer g++, fall back to clang++
-        let compiler = if which::which("g++").is_ok() {
-            "g++"
-        } else if which::which("clang++").is_ok() {
-            "clang++"
-        } else {
-            return Ok(missing_runtime_result(
-                "g++ / clang++",
-                "Install MinGW-w64: https://www.mingw-w64.org/ or MSVC via Visual Studio",
-            ));
+        let compiler_cmd = match compiler_path {
+            Some(ref path) => path.clone(),
+            None => {
+                if which::which("g++").is_ok() {
+                    "g++".to_string()
+                } else if which::which("clang++").is_ok() {
+                    "clang++".to_string()
+                } else {
+                    return Ok(missing_runtime_result(
+                        "g++ / clang++",
+                        "Install MinGW-w64: https://www.mingw-w64.org/ or MSVC via Visual Studio",
+                    ));
+                }
+            }
         };
 
         let workspace = create_temp_workspace()?;
@@ -37,7 +42,7 @@ impl LanguageExecutor for CppExecutor {
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
         // ── Step 1: Compile ──────────────────────────────────────
-        let mut compile = new_command(compiler);
+        let mut compile = new_command(&compiler_cmd);
         compile
             .arg(&src)
             .arg("-o").arg(&bin)

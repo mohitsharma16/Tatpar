@@ -20,6 +20,7 @@ export function useExecution(): UseExecutionReturn {
   const setExecutionResult = useAppStore((s) => s.setExecutionResult);
   const addToHistory = useAppStore((s) => s.addToHistory);
   const isRunning = useAppStore((s) => s.isRunning);
+  const languageSettings = useAppStore((s) => s.settings.languageSettings);
 
   const run = useCallback(
     async (language: LanguageId, code: string) => {
@@ -28,11 +29,13 @@ export function useExecution(): UseExecutionReturn {
       setRunning(true);
       setExecutionResult(null);
 
+      const timeoutSecs = languageSettings[language]?.timeoutSecs ?? 10;
+
       try {
         const result = await executeCode({
           language,
           code,
-          timeoutSecs: 10,
+          timeoutSecs,
         });
 
         setExecutionResult(result);
@@ -51,7 +54,7 @@ export function useExecution(): UseExecutionReturn {
         setRunning(false);
       }
     },
-    [isRunning, setRunning, setExecutionResult, addToHistory]
+    [isRunning, setRunning, setExecutionResult, addToHistory, languageSettings]
   );
 
   const cancel = useCallback(() => {

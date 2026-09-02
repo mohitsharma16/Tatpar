@@ -20,29 +20,37 @@ impl LanguageExecutor for PythonExecutor {
         code: &str,
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
+        compiler_path: Option<String>,
     ) -> Result<ExecutionResult, String> {
-        // On Windows: `python3` is usually a Microsoft Store stub — skip it.
-        // On Unix: prefer python3, fall back to python.
-        #[cfg(target_os = "windows")]
-        let python = {
-            if which::which("python").is_ok() { "python" }
-            else {
-                return Ok(missing_runtime_result(
-                    "python",
-                    "Install Python 3: https://www.python.org/downloads/ (check 'Add to PATH')",
-                ));
-            }
-        };
-
-        #[cfg(not(target_os = "windows"))]
-        let python = {
-            if which::which("python3").is_ok() { "python3" }
-            else if which::which("python").is_ok() { "python" }
-            else {
-                return Ok(missing_runtime_result(
-                    "python",
-                    "Install Python 3: https://www.python.org/downloads/",
-                ));
+        let python_cmd = match compiler_path {
+            Some(path) => path,
+            None => {
+                #[cfg(target_os = "windows")]
+                {
+                    if which::which("python").is_ok() {
+                        "python".to_string()
+                    } else if which::which("py").is_ok() {
+                        "py".to_string()
+                    } else {
+                        return Ok(missing_runtime_result(
+                            "python",
+                            "Install Python 3: https://www.python.org/downloads/ (check 'Add to PATH')",
+                        ));
+                    }
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                    if which::which("python3").is_ok() {
+                        "python3".to_string()
+                    } else if which::which("python").is_ok() {
+                        "python".to_string()
+                    } else {
+                        return Ok(missing_runtime_result(
+                            "python",
+                            "Install Python 3: https://www.python.org/downloads/",
+                        ));
+                    }
+                }
             }
         };
 
@@ -50,7 +58,7 @@ impl LanguageExecutor for PythonExecutor {
         let src = workspace.path().join("main.py");
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
-        let mut cmd = new_command(python);
+        let mut cmd = new_command(&python_cmd);
         cmd.arg(&src);
         Ok(run_process(cmd, timeout_secs, cancel).await)
     }

@@ -4,10 +4,12 @@
 // On Windows, tsc and npx are .cmd files — use new_command()
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
+use super::language::{
+    create_temp_workspace, new_command, run_process, ExecutionResult, LanguageExecutor,
+};
 use async_trait::async_trait;
-use std::sync::{Arc, Mutex};
 use chrono::Utc;
+use std::sync::{Arc, Mutex};
 
 pub struct TypeScriptExecutor;
 
@@ -18,46 +20,64 @@ impl LanguageExecutor for TypeScriptExecutor {
         code: &str,
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
+        compiler_path: Option<String>,
     ) -> Result<ExecutionResult, String> {
-        // Need node to run the compiled output
-        if which::which("node").is_err() {
+        // Resolve compiler command (custom path or PATH candidate)
+        let (is_custom_path, tsc_executable) = match compiler_path {
+            Some(ref path_str) => (true, path_str.clone()),
+            None => {
+                let has_tsc = which::which("tsc").is_ok();
+                let has_npx = !has_tsc && which::which("npx").is_ok();
+
+                if !has_tsc && !has_npx {
+                    return Ok(missing_runtime_result(
+                        "tsc / npx",
+                        "Install TypeScript globally: `npm install -g typescript`",
+                    ));
+                }
+                (
+                    false,
+                    if has_npx {
+                        "npx".to_string()
+                    } else {
+                        "tsc".to_string()
+                    },
+                )
+            }
+        };
+
+        // Resolve Node.js executable for running compiled output
+        let node_executable = if which::which("node").is_ok() {
+            "node".to_string()
+        } else {
             return Ok(missing_runtime_result(
                 "node",
-                "Install Node.js (includes npx): https://nodejs.org/",
+                "Install Node.js (required to execute TypeScript output): https://nodejs.org/",
             ));
-        }
-
-        // Prefer global tsc, fall back to npx tsc
-        let use_tsc = which::which("tsc").is_ok();
-        let use_npx = !use_tsc && which::which("npx").is_ok();
-
-        if !use_tsc && !use_npx {
-            return Ok(missing_runtime_result(
-                "tsc / npx",
-                "Install TypeScript globally: `npm install -g typescript`",
-            ));
-        }
+        };
 
         let workspace = create_temp_workspace()?;
         let src = workspace.path().join("main.ts");
         let out = workspace.path().join("main.js");
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
-        // ── Step 1: Compile ──────────────────────────────────────
-        // new_command wraps tsc.cmd / npx.cmd in `cmd /C` on Windows
-        let mut compile = if use_npx {
+        // ── Step 1: Compile TypeScript -> JavaScript ─────────────
+        let mut compile = if !is_custom_path && tsc_executable == "npx" {
             let mut c = new_command("npx");
             c.arg("tsc");
             c
         } else {
-            new_command("tsc")
+            new_command(&tsc_executable)
         };
 
         compile
             .arg(&src)
-            .arg("--outDir").arg(workspace.path())
-            .arg("--target").arg("ES2020")
-            .arg("--module").arg("commonjs")
+            .arg("--outDir")
+            .arg(workspace.path())
+            .arg("--target")
+            .arg("ES2020")
+            .arg("--module")
+            .arg("commonjs")
             .arg("--skipLibCheck");
 
         let compile_result = run_process(compile, timeout_secs, Arc::clone(&cancel)).await;
@@ -81,8 +101,10 @@ impl LanguageExecutor for TypeScriptExecutor {
         }
 
         // ── Step 2: Run with node ────────────────────────────────
-        let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000).max(2);
-        let mut run_cmd = new_command("node");
+        let remaining = timeout_secs
+            .saturating_sub(compile_result.duration_ms / 1000)
+            .max(2);
+        let mut run_cmd = new_command(&node_executable);
         run_cmd.arg(&out);
         let run_result = run_process(run_cmd, remaining, cancel).await;
 

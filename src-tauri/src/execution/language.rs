@@ -5,12 +5,11 @@
 // defined here and re-exported via execution/mod.rs.
 // ============================================================
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::process::Command;
-use tokio::time::timeout;
-use chrono::Utc;
 
 // ─── Shared Types ─────────────────────────────────────────────
 
@@ -50,6 +49,7 @@ pub trait LanguageExecutor: Send + Sync {
         code: &str,
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
+        compiler_path: Option<String>,
     ) -> Result<ExecutionResult, String>;
 }
 
@@ -104,52 +104,107 @@ pub fn new_command(program: &str) -> Command {
     Command::new(program)
 }
 
-/// Run a subprocess with a timeout; capture stdout/stderr.
+/// Run a subprocess with timeout and cancellation support, ensuring process cleanup on exit.
 pub async fn run_process(
     mut cmd: Command,
     timeout_secs: u64,
-    _cancel: Arc<Mutex<bool>>,
+    cancel: Arc<Mutex<bool>>,
 ) -> ExecutionResult {
     let start = Instant::now();
     let now = Utc::now().to_rfc3339();
 
-    let run = async {
-        match cmd.output().await {
-            Ok(output) => {
-                let duration_ms = start.elapsed().as_millis() as u64;
-                let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                let exit_code = output.status.code();
-                let status = if exit_code == Some(0) { "success" } else { "error" };
-                ExecutionResult {
-                    stdout,
-                    stderr,
-                    exit_code,
-                    duration_ms,
-                    status: status.to_string(),
-                    timestamp: now.clone(),
-                }
-            }
-            Err(e) => ExecutionResult {
+    cmd.kill_on_drop(true);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+
+    let mut child = match cmd.spawn() {
+        Ok(child) => child,
+        Err(e) => {
+            return ExecutionResult {
                 stdout: String::new(),
                 stderr: format!("Failed to spawn process: {e}"),
                 exit_code: None,
                 duration_ms: start.elapsed().as_millis() as u64,
                 status: "error".to_string(),
-                timestamp: now.clone(),
-            },
+                timestamp: now,
+            };
         }
     };
 
-    match timeout(Duration::from_secs(timeout_secs), run).await {
-        Ok(result) => result,
-        Err(_) => ExecutionResult {
-            stdout: String::new(),
-            stderr: format!("[Process timeout after {}s]", timeout_secs),
-            exit_code: None,
-            duration_ms: timeout_secs * 1000,
-            status: "timeout".to_string(),
-            timestamp: Utc::now().to_rfc3339(),
-        },
+    let timeout_duration = Duration::from_secs(timeout_secs);
+    let check_interval = Duration::from_millis(40);
+
+    loop {
+        // 1. Check if user cancelled execution
+        if *cancel.lock().unwrap() {
+            let _ = child.kill().await;
+            return ExecutionResult {
+                stdout: String::new(),
+                stderr: "[Process cancelled by user]".to_string(),
+                exit_code: None,
+                duration_ms: start.elapsed().as_millis() as u64,
+                status: "error".to_string(),
+                timestamp: Utc::now().to_rfc3339(),
+            };
+        }
+
+        // 2. Check if process finished
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let duration_ms = start.elapsed().as_millis() as u64;
+                let mut stdout_buf = Vec::new();
+                let mut stderr_buf = Vec::new();
+
+                if let Some(mut stdout) = child.stdout.take() {
+                    let _ = tokio::io::AsyncReadExt::read_to_end(&mut stdout, &mut stdout_buf).await;
+                }
+                if let Some(mut stderr) = child.stderr.take() {
+                    let _ = tokio::io::AsyncReadExt::read_to_end(&mut stderr, &mut stderr_buf).await;
+                }
+
+                let stdout = String::from_utf8_lossy(&stdout_buf).to_string();
+                let stderr = String::from_utf8_lossy(&stderr_buf).to_string();
+                let exit_code = status.code();
+                let exec_status = if exit_code == Some(0) { "success" } else { "error" };
+
+                return ExecutionResult {
+                    stdout,
+                    stderr,
+                    exit_code,
+                    duration_ms,
+                    status: exec_status.to_string(),
+                    timestamp: now,
+                };
+            }
+            Ok(None) => {
+                // Process is still running
+            }
+            Err(e) => {
+                let _ = child.kill().await;
+                return ExecutionResult {
+                    stdout: String::new(),
+                    stderr: format!("Error waiting for process: {e}"),
+                    exit_code: None,
+                    duration_ms: start.elapsed().as_millis() as u64,
+                    status: "error".to_string(),
+                    timestamp: now,
+                };
+            }
+        }
+
+        // 3. Check for timeout
+        if start.elapsed() >= timeout_duration {
+            let _ = child.kill().await;
+            return ExecutionResult {
+                stdout: String::new(),
+                stderr: format!("[Process timed out after {}s]", timeout_secs),
+                exit_code: None,
+                duration_ms: timeout_secs * 1000,
+                status: "timeout".to_string(),
+                timestamp: Utc::now().to_rfc3339(),
+            };
+        }
+
+        tokio::time::sleep(check_interval).await;
     }
 }

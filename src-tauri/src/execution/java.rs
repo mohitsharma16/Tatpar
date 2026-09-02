@@ -18,13 +18,20 @@ impl LanguageExecutor for JavaExecutor {
         code: &str,
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
+        compiler_path: Option<String>,
     ) -> Result<ExecutionResult, String> {
-        if which::which("javac").is_err() {
-            return Ok(missing_runtime_result(
-                "javac",
-                "Install the JDK: https://adoptium.net/ or `winget install Microsoft.OpenJDK.21`",
-            ));
-        }
+        let javac_cmd = match compiler_path {
+            Some(ref path) => path.clone(),
+            None => {
+                if which::which("javac").is_err() {
+                    return Ok(missing_runtime_result(
+                        "javac",
+                        "Install the JDK: https://adoptium.net/ or `winget install Microsoft.OpenJDK.21`",
+                    ));
+                }
+                "javac".to_string()
+            }
+        };
 
         let workspace = create_temp_workspace()?;
         // Java requires the filename to match the public class name
@@ -32,7 +39,7 @@ impl LanguageExecutor for JavaExecutor {
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
         // ── Step 1: Compile ──────────────────────────────────────
-        let mut compile = new_command("javac");
+        let mut compile = new_command(&javac_cmd);
         compile.arg(&src);
         let compile_result = run_process(compile, timeout_secs, Arc::clone(&cancel)).await;
 

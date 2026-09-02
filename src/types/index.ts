@@ -184,7 +184,7 @@ export const DEFAULT_SETTINGS: Settings = {
 // App State (UI)
 // ------------------------------------------------------------
 
-export type PanelView = "editor" | "settings";
+export type PanelView = "editor" | "settings" | "history";
 
 export interface AppState {
   /** Currently selected language */

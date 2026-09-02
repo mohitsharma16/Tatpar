@@ -4,10 +4,12 @@
 // On Windows, kotlinc is a .bat file — must use new_command()
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
+use super::language::{
+    create_temp_workspace, new_command, run_process, ExecutionResult, LanguageExecutor,
+};
 use async_trait::async_trait;
-use std::sync::{Arc, Mutex};
 use chrono::Utc;
+use std::sync::{Arc, Mutex};
 
 pub struct KotlinExecutor;
 
@@ -18,14 +20,20 @@ impl LanguageExecutor for KotlinExecutor {
         code: &str,
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
+        compiler_path: Option<String>,
     ) -> Result<ExecutionResult, String> {
-        // Guard: kotlinc must be on PATH
-        if which::which("kotlinc").is_err() {
-            return Ok(missing_runtime_result(
-                "kotlinc",
-                "Install the Kotlin compiler: https://kotlinlang.org/docs/command-line.html",
-            ));
-        }
+        let kotlinc_cmd = match compiler_path {
+            Some(ref path) => path.clone(),
+            None => {
+                if which::which("kotlinc").is_err() {
+                    return Ok(missing_runtime_result(
+                        "kotlinc",
+                        "Install the Kotlin compiler: https://kotlinlang.org/docs/command-line.html",
+                    ));
+                }
+                "kotlinc".to_string()
+            }
+        };
 
         let workspace = create_temp_workspace()?;
         let src = workspace.path().join("main.kt");
@@ -35,7 +43,7 @@ impl LanguageExecutor for KotlinExecutor {
 
         // ── Step 1: Compile ──────────────────────────────────────
         // new_command wraps kotlinc.bat in `cmd /C` on Windows
-        let mut compile = new_command("kotlinc");
+        let mut compile = new_command(&kotlinc_cmd);
         compile
             .arg(&src)
             .arg("-include-runtime")
@@ -64,7 +72,9 @@ impl LanguageExecutor for KotlinExecutor {
         }
 
         // ── Step 2: Run ──────────────────────────────────────────
-        let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000).max(2);
+        let remaining = timeout_secs
+            .saturating_sub(compile_result.duration_ms / 1000)
+            .max(2);
         let mut run_cmd = new_command("java");
         run_cmd.arg("-jar").arg(&jar);
 

@@ -3,9 +3,11 @@ import { Editor } from "./components/editor/Editor";
 import { Header } from "./components/ui/Header";
 import { Terminal } from "./components/terminal/Terminal";
 import { SettingsPanel } from "./components/ui/Settings";
+import { HistoryPanel } from "./components/history/History";
 import { useAppStore } from "./store/app";
 import { useExecution } from "./hooks/useExecution";
 import { useSettings } from "./hooks/useSettings";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { checkLanguages } from "./api/tauri";
 import "./App.css";
 
@@ -36,12 +38,11 @@ function App() {
     setExecutionResult(null);
   };
 
-  // Listen for Ctrl+Enter dispatched by Monaco editor
-  useEffect(() => {
-    const handler = () => handleRun();
-    window.addEventListener("tatpar:run", handler);
-    return () => window.removeEventListener("tatpar:run", handler);
-  }, [activeLanguage, code]);
+  // Global & Monaco keyboard shortcuts (Ctrl+Enter, Ctrl+1..6, Ctrl+K, Ctrl+,, Escape)
+  useKeyboardShortcuts({
+    onRun: handleRun,
+    onClear: handleClear,
+  });
 
   return (
     <div className={`app-root ${settings.theme}`}>
@@ -49,6 +50,8 @@ function App() {
       <main className="app-main">
         {panel === "settings" ? (
           <SettingsPanel />
+        ) : panel === "history" ? (
+          <HistoryPanel />
         ) : (
           <>
             <div className="app-editor-pane">

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { useAppStore, useSettings as useSettingsStore } from "../../store/app";
-import { saveSettings, setAlwaysOnTop } from "../../api/tauri";
+import { getCompilerPath, saveSettings, setAlwaysOnTop } from "../../api/tauri";
 import { LANGUAGE_LIST } from "../../types";
 import type { LanguageId, Settings } from "../../types";
 
@@ -13,13 +13,24 @@ import type { LanguageId, Settings } from "../../types";
 export function SettingsPanel() {
   const [appVersion, setAppVersion] = useState<string>("—");
 
+  const [detectedPaths, setDetectedPaths] = useState<Partial<Record<LanguageId, string | null>>>({});
+
   useEffect(() => {
     getVersion()
       .then(setAppVersion)
       .catch(() => setAppVersion("unknown"));
+
+    LANGUAGE_LIST.forEach((lang) => {
+      getCompilerPath(lang.id)
+        .then((path) => {
+          setDetectedPaths((prev) => ({ ...prev, [lang.id]: path }));
+        })
+        .catch(() => { });
+    });
   }, []);
   const settings = useSettingsStore();
   const setSettings = useAppStore((s) => s.setSettings);
+  const languageAvailability = useAppStore((s) => s.languageAvailability);
 
   // Persist to disk immediately after every change
   const persist = useCallback(
@@ -58,6 +69,18 @@ export function SettingsPanel() {
         [langId]: {
           ...settings.languageSettings[langId],
           timeoutSecs: secs,
+        },
+      },
+    });
+  };
+
+  const handleCompilerPath = (langId: LanguageId, path: string) => {
+    update({
+      languageSettings: {
+        ...settings.languageSettings,
+        [langId]: {
+          ...settings.languageSettings[langId],
+          compilerPath: path,
         },
       },
     });
@@ -168,6 +191,48 @@ export function SettingsPanel() {
                   />
                   <span className="settings-value">{timeout}s</span>
                 </div>
+              </div>
+            );
+          })}
+        </section>
+
+        {/* ── Compiler & Runtime Paths ── */}
+        <section className="settings-section">
+          <h2 className="settings-section-title">Compiler & Runtime Paths</h2>
+          <p className="settings-section-desc">
+            Override the executable path for specific languages, or leave blank for auto-discovery.
+          </p>
+
+          {LANGUAGE_LIST.map((lang) => {
+            const isAvailable = languageAvailability[lang.id] ?? false;
+            const detected = detectedPaths[lang.id];
+            const customPath = settings.languageSettings[lang.id]?.compilerPath ?? "";
+
+            return (
+              <div className="settings-row settings-row--path" key={`path-${lang.id}`}>
+                <div className="settings-label-group">
+                  <div className="settings-label-with-badge">
+                    <label className="settings-label" htmlFor={`path-${lang.id}`}>
+                      {lang.name}
+                    </label>
+                    <span className={`settings-status-badge ${isAvailable ? "settings-status-badge--available" : "settings-status-badge--missing"}`}>
+                      {isAvailable ? "Installed" : "Not Found"}
+                    </span>
+                  </div>
+                  {detected && (
+                    <span className="settings-hint settings-hint--path" title={detected}>
+                      Detected: {detected}
+                    </span>
+                  )}
+                </div>
+                <input
+                  id={`path-${lang.id}`}
+                  type="text"
+                  className="settings-input"
+                  placeholder="Auto-detect from PATH"
+                  value={customPath}
+                  onChange={(e) => handleCompilerPath(lang.id as LanguageId, e.target.value)}
+                />
               </div>
             );
           })}

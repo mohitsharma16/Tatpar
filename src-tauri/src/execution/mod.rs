@@ -17,7 +17,7 @@ pub use language::{ExecutionRequest, ExecutionResult, ExecutionState};
 use language::LanguageExecutor;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tauri::{command, State};
+use tauri::{command, AppHandle, State};
 
 // (Types are defined in language.rs and re-exported above)
 
@@ -26,6 +26,7 @@ use tauri::{command, State};
 /// Run code in the given language and return the result.
 #[command]
 pub async fn execute_code(
+    app: AppHandle,
     request: ExecutionRequest,
     state: State<'_, ExecutionState>,
 ) -> Result<ExecutionResult, String> {
@@ -37,14 +38,15 @@ pub async fn execute_code(
 
     let cancel = Arc::clone(&state.cancel_flag);
     let timeout = request.timeout_secs.unwrap_or(10);
+    let compiler_path = resolve_path_for_lang(&app, &request.language);
 
     let result = match request.language.as_str() {
-        "kotlin"     => kotlin::KotlinExecutor.execute(&request.code, timeout, cancel).await,
-        "python"     => python::PythonExecutor.execute(&request.code, timeout, cancel).await,
-        "java"       => java::JavaExecutor.execute(&request.code, timeout, cancel).await,
-        "javascript" => javascript::JavaScriptExecutor.execute(&request.code, timeout, cancel).await,
-        "typescript" => typescript::TypeScriptExecutor.execute(&request.code, timeout, cancel).await,
-        "cpp"        => cpp::CppExecutor.execute(&request.code, timeout, cancel).await,
+        "kotlin"     => kotlin::KotlinExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
+        "python"     => python::PythonExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
+        "java"       => java::JavaExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
+        "javascript" => javascript::JavaScriptExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
+        "typescript" => typescript::TypeScriptExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
+        "cpp"        => cpp::CppExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
         other        => Err(format!("Unsupported language: {other}")),
     };
 
@@ -61,36 +63,58 @@ pub async fn cancel_execution(
     Ok(())
 }
 
-/// Check which language runtimes are available on PATH.
+/// Check which language runtimes are available on PATH or custom settings.
 #[command]
-pub async fn check_languages() -> Result<HashMap<String, bool>, String> {
+pub async fn check_languages(app: AppHandle) -> Result<HashMap<String, bool>, String> {
+    let languages = ["kotlin", "python", "java", "javascript", "typescript", "cpp"];
     let mut map = HashMap::new();
-    map.insert("kotlin".to_string(),     which::which("kotlinc").is_ok());
-    map.insert("python".to_string(),     which::which("python").is_ok() || which::which("python3").is_ok());
-    map.insert("java".to_string(),       which::which("javac").is_ok());
-    map.insert("javascript".to_string(), which::which("node").is_ok());
-    map.insert("typescript".to_string(), which::which("tsc").is_ok() || which::which("npx").is_ok());
-    map.insert("cpp".to_string(),        which::which("g++").is_ok() || which::which("clang++").is_ok());
+
+    for lang in languages {
+        let is_available = resolve_path_for_lang(&app, lang).is_some();
+        map.insert(lang.to_string(), is_available);
+    }
     Ok(map)
 }
 
 /// Get the resolved path to the compiler/interpreter for a language.
 #[command]
-pub async fn get_compiler_path(language: String) -> Result<Option<String>, String> {
-    let candidates: &[&str] = match language.as_str() {
+pub async fn get_compiler_path(app: AppHandle, language: String) -> Result<Option<String>, String> {
+    Ok(resolve_path_for_lang(&app, &language))
+}
+
+pub fn resolve_path_for_lang(app: &AppHandle, language: &str) -> Option<String> {
+    let settings = crate::settings::read_settings_sync(app);
+    if let Some(ls) = settings.language_settings.get(language) {
+        if let Some(ref custom_path) = ls.compiler_path {
+            let trimmed = custom_path.trim();
+            if !trimmed.is_empty() && std::path::Path::new(trimmed).exists() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+
+    let candidates: &[&str] = match language {
         "kotlin"     => &["kotlinc"],
-        "python"     => &["python3", "python"],
+        "python"     => &["python", "python3", "py"],
         "java"       => &["javac"],
-        "javascript" => &["node"],
+        "javascript" => &["node", "bun"],
         "typescript" => &["tsc"],
-        "cpp"        => &["g++", "clang++"],
-        _            => return Ok(None),
+        "cpp"        => &["g++", "clang++", "cl"],
+        _            => return None,
     };
 
     for cmd in candidates {
         if let Ok(path) = which::which(cmd) {
-            return Ok(Some(path.to_string_lossy().to_string()));
+            return Some(path.to_string_lossy().to_string());
         }
     }
-    Ok(None)
+
+    // Special fallback check for TypeScript via npx if tsc isn't directly on PATH
+    if language == "typescript" && which::which("npx").is_ok() {
+        if let Ok(npx_path) = which::which("npx") {
+            return Some(format!("{} tsc", npx_path.to_string_lossy()));
+        }
+    }
+
+    None
 }

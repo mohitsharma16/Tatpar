@@ -37,12 +37,25 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "shortDescription": "A floating, persistent code scratchpad that runs anywhere",
+    "longDescription": "Tatpar is a lightweight, always-available floating code editor that lets you write and execute snippets in 6 languages without project setup.",
+    "copyright": "Copyright © 2024 Mohit",
+    "category": "DeveloperTool",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      },
+      "wix": {
+        "language": "en-US"
+      }
+    }
   }
 }
