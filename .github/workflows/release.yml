@@ -16,6 +16,8 @@ jobs:
         include:
           - platform: windows-latest
             args: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -34,6 +36,8 @@ jobs:
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -51,7 +55,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "Tatpar ${{ github.ref_name }}"
           releaseBody: |
-            See the assets below to download **Tatpar ${{ github.ref_name }}** for Windows.
+            See the assets below to download **Tatpar ${{ github.ref_name }}** for Windows and macOS.
 
             ### 🚀 Features in this Release:
             - Floating persistent code editor running on top of any window
