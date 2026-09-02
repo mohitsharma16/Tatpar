@@ -29,7 +29,7 @@ impl LanguageExecutor for TypeScriptExecutor {
                 let has_tsc = which::which("tsc").is_ok();
                 let has_npx = !has_tsc && which::which("npx").is_ok();
 
-                if !has_tsc && has_npx {
+                if !has_tsc && !has_npx {
                     return Ok(missing_runtime_result(
                         "tsc / npx",
                         "Install TypeScript globally: `npm install -g typescript`",
