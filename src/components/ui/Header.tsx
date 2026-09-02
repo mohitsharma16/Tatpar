@@ -70,11 +70,11 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
                 value={activeLanguage.id}
                 onChange={handleLanguageChange}
                 disabled={isRunning}
-                title="Select language"
+                title="Select language (Ctrl+1 through Ctrl+6)"
               >
-                {LANGUAGE_LIST.map((lang) => (
+                {LANGUAGE_LIST.map((lang, index) => (
                   <option key={lang.id} value={lang.id}>
-                    {lang.name}
+                    {lang.name} (Ctrl+{index + 1})
                   </option>
                 ))}
               </select>
@@ -104,7 +104,7 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
             id="settings-toggle"
             className={`icon-btn${isSettingsOpen ? " icon-btn--active" : ""}`}
             onClick={toggleSettings}
-            title={isSettingsOpen ? "Close settings" : "Open settings"}
+            title={isSettingsOpen ? "Close settings (Esc or Ctrl+,)" : "Open settings (Ctrl+,)"}
             aria-label="Toggle settings"
             aria-pressed={isSettingsOpen}
           >

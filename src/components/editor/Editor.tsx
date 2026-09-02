@@ -24,13 +24,38 @@ export function Editor({ onChange }: EditorProps) {
   };
 
   const handleMount: OnMount = (editor, monaco) => {
-    // Ctrl+Enter → trigger run (dispatches a custom event the parent listens to)
-    editor.addCommand(
-      monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
-      () => {
-        window.dispatchEvent(new CustomEvent("tatpar:run"));
-      }
-    );
+    // Ctrl+Enter → trigger run
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      window.dispatchEvent(new CustomEvent("tatpar:run"));
+    });
+
+    // Ctrl+K → clear terminal
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+      window.dispatchEvent(new CustomEvent("tatpar:clear"));
+    });
+
+    // Ctrl+, → toggle settings
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Comma, () => {
+      window.dispatchEvent(new CustomEvent("tatpar:settings"));
+    });
+
+    // Ctrl+1 through Ctrl+6 → switch language
+    const digitKeyCodes = [
+      monaco.KeyCode.Digit1,
+      monaco.KeyCode.Digit2,
+      monaco.KeyCode.Digit3,
+      monaco.KeyCode.Digit4,
+      monaco.KeyCode.Digit5,
+      monaco.KeyCode.Digit6,
+    ];
+
+    digitKeyCodes.forEach((keyCode, index) => {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | keyCode, () => {
+        window.dispatchEvent(
+          new CustomEvent("tatpar:switch-lang", { detail: { index } })
+        );
+      });
+    });
 
     // Focus the editor immediately
     editor.focus();

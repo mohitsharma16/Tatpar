@@ -66,7 +66,7 @@ function TerminalHeader({
             <button
               id="clear-output-btn"
               className="terminal-action-btn"
-              title="Clear output"
+              title="Clear output (Ctrl+K)"
               onClick={onClear}
               aria-label="Clear output"
             >
