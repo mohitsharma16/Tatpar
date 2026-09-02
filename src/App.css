@@ -953,4 +953,71 @@ kbd {
   border-radius: 10px;
   padding: 1px 7px;
   letter-spacing: 0.02em;
+}
+
+/* ── Path Override Inputs & Badges ── */
+
+.settings-row--path {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.settings-label-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-status-badge {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.settings-status-badge--available {
+  background: rgba(78, 201, 176, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(78, 201, 176, 0.3);
+}
+
+.settings-status-badge--missing {
+  background: rgba(244, 135, 113, 0.15);
+  color: var(--error);
+  border: 1px solid rgba(244, 135, 113, 0.3);
+}
+
+.settings-hint--path {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.settings-input {
+  font-family: var(--font-code);
+  font-size: 12px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  outline: none;
+  width: 100%;
+  transition: border-color var(--transition);
+}
+
+.settings-input:focus {
+  border-color: var(--border-focus);
+}
+
+.settings-input::placeholder {
+  color: var(--text-muted);
 }

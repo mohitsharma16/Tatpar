@@ -50,6 +50,7 @@ pub trait LanguageExecutor: Send + Sync {
         code: &str,
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
+        compiler_path: Option<String>,
     ) -> Result<ExecutionResult, String>;
 }
 
