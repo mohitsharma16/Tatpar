@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Copy, Check, Trash2 } from "lucide-react";
 import { useAppStore } from "../../store/app";
 import type { ExecutionResult } from "../../types";
 
@@ -33,7 +35,15 @@ function TerminalHeader({
   isRunning: boolean;
   onClear: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const statusBadge = getStatusBadge(result, isRunning);
+
+  const handleCopy = async () => {
+    if (!result) return;
+    await copyOutput(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
 
   return (
     <div className="terminal-header">
@@ -56,12 +66,22 @@ function TerminalHeader({
           <>
             <button
               id="copy-output-btn"
-              className="terminal-action-btn"
-              title="Copy output"
-              onClick={() => copyOutput(result)}
+              className={`terminal-action-btn${copied ? " terminal-action-btn--copied" : ""}`}
+              title="Copy output (Ctrl+Shift+C)"
+              onClick={handleCopy}
               aria-label="Copy output"
             >
-              Copy
+              {copied ? (
+                <>
+                  <Check size={11} aria-hidden="true" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={11} aria-hidden="true" />
+                  <span>Copy</span>
+                </>
+              )}
             </button>
             <button
               id="clear-output-btn"
@@ -70,7 +90,8 @@ function TerminalHeader({
               onClick={onClear}
               aria-label="Clear output"
             >
-              Clear
+              <Trash2 size={11} aria-hidden="true" />
+              <span>Clear</span>
             </button>
           </>
         )}
