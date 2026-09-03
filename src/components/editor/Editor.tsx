@@ -1,6 +1,9 @@
+import { useRef, useEffect } from "react";
 import MonacoEditor, { type OnMount, type OnChange } from "@monaco-editor/react";
 import { useAppStore, useActiveLanguage, useSettings } from "../../store/app";
 import { saveSettings } from "../../api/tauri";
+
+type EditorInstance = Parameters<OnMount>[0];
 
 // ============================================================
 // Tatpar — Editor Component
@@ -13,10 +16,21 @@ interface EditorProps {
 }
 
 export function Editor({ onChange }: EditorProps) {
+  const editorRef = useRef<EditorInstance | null>(null);
   const activeLanguage = useActiveLanguage();
   const code = useAppStore((s) => s.codePerLanguage[s.activeLanguage]);
   const setCode = useAppStore((s) => s.setCode);
   const settings = useSettings();
+
+  useEffect(() => {
+    const handleFocus = () => {
+      editorRef.current?.focus();
+    };
+    window.addEventListener("tatpar:focus-editor", handleFocus);
+    return () => {
+      window.removeEventListener("tatpar:focus-editor", handleFocus);
+    };
+  }, []);
 
   const handleChange: OnChange = (value) => {
     const newCode = value ?? "";
@@ -25,6 +39,7 @@ export function Editor({ onChange }: EditorProps) {
   };
 
   const handleMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
     // Ctrl+Enter → trigger run
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       window.dispatchEvent(new CustomEvent("tatpar:run"));

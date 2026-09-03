@@ -30,6 +30,11 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
   const toggleSettings = () => setPanel(isSettingsOpen ? "editor" : "settings");
   const toggleHistory = () => setPanel(isHistoryOpen ? "editor" : "history");
 
+  const handleBrandClick = () => {
+    setPanel("editor");
+    window.dispatchEvent(new CustomEvent("tatpar:focus-editor"));
+  };
+
   const isDark = settings.theme === "dark";
   const avail = availability[activeLanguage.id as LanguageId];
   // undefined = not yet checked (optimistic); true = ok; false = missing
@@ -56,10 +61,16 @@ export function Header({ onRun, onCancel, isRunning }: HeaderProps) {
     <>
       <header className="tatpar-header">
         {/* App branding */}
-        <div className="header-brand">
+        <button
+          type="button"
+          className="header-brand"
+          onClick={handleBrandClick}
+          title="Go to Code Editor"
+          aria-label="Tatpar - Go to Code Editor"
+        >
           <Logo size={20} />
           <span className="header-title">Tatpar</span>
-        </div>
+        </button>
 
         {/* Controls */}
         <div className="header-controls">

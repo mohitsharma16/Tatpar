@@ -132,6 +132,30 @@ body {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  margin: -4px 0 -4px -6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  font-family: inherit;
+  transition: background var(--transition), opacity var(--transition);
+}
+
+.header-brand:hover {
+  background: var(--bg-hover);
+}
+
+.header-brand:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.header-brand:active {
+  transform: scale(0.98);
 }
 
 .header-title {
@@ -140,6 +164,11 @@ body {
   letter-spacing: 0.04em;
   color: var(--text-secondary);
   text-transform: none;
+  transition: color var(--transition);
+}
+
+.header-brand:hover .header-title {
+  color: var(--text-primary);
 }
 
 /* Controls row */
