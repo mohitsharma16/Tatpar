@@ -125,13 +125,13 @@ export function SettingsPanel() {
                 id="font-size-slider"
                 type="range"
                 className="settings-slider"
-                min={11}
-                max={20}
+                min={10}
+                max={32}
                 step={1}
                 value={settings.editorFontSize}
                 onChange={(e) => update({ editorFontSize: Number(e.target.value) })}
-                aria-valuemin={11}
-                aria-valuemax={20}
+                aria-valuemin={10}
+                aria-valuemax={32}
                 aria-valuenow={settings.editorFontSize}
               />
               <span className="settings-value">{settings.editorFontSize}px</span>

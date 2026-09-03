@@ -1,5 +1,6 @@
 import MonacoEditor, { type OnMount, type OnChange } from "@monaco-editor/react";
 import { useAppStore, useActiveLanguage, useSettings } from "../../store/app";
+import { saveSettings } from "../../api/tauri";
 
 // ============================================================
 // Tatpar — Editor Component
@@ -39,6 +40,17 @@ export function Editor({ onChange }: EditorProps) {
       window.dispatchEvent(new CustomEvent("tatpar:settings"));
     });
 
+    // Ctrl+0 → reset zoom / font size to default (14px)
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Digit0, () => {
+      const defaultFontSize = 14;
+      editor.updateOptions({ fontSize: defaultFontSize });
+      useAppStore.getState().setSettings({ editorFontSize: defaultFontSize });
+      saveSettings({
+        ...useAppStore.getState().settings,
+        editorFontSize: defaultFontSize,
+      }).catch(() => {});
+    });
+
     // Ctrl+1 through Ctrl+6 → switch language
     const digitKeyCodes = [
       monaco.KeyCode.Digit1,
@@ -57,6 +69,24 @@ export function Editor({ onChange }: EditorProps) {
       });
     });
 
+    // Sync font size changes from Ctrl + mouse wheel zoom to state & persistent settings
+    editor.onDidChangeConfiguration((e) => {
+      if (e.hasChanged(monaco.editor.EditorOption.fontSize)) {
+        const newFontSize = Math.round(
+          editor.getOption(monaco.editor.EditorOption.fontSize)
+        );
+        const currentFontSize = useAppStore.getState().settings.editorFontSize;
+        if (newFontSize !== currentFontSize && newFontSize >= 10 && newFontSize <= 32) {
+          const updatedSettings = {
+            ...useAppStore.getState().settings,
+            editorFontSize: newFontSize,
+          };
+          useAppStore.getState().setSettings({ editorFontSize: newFontSize });
+          saveSettings(updatedSettings).catch(() => {});
+        }
+      }
+    });
+
     // Focus the editor immediately
     editor.focus();
   };
@@ -72,6 +102,7 @@ export function Editor({ onChange }: EditorProps) {
         onMount={handleMount}
         options={{
           fontSize: settings.editorFontSize,
+          mouseWheelZoom: true,
           fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace",
           fontLigatures: true,
           minimap: { enabled: false },

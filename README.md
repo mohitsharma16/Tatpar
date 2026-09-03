@@ -60,6 +60,8 @@ Tatpar executes code locally using installed compilers and interpreters on your 
 | :--- | :--- |
 | `Ctrl+Enter` | Run active code in editor |
 | `Ctrl+Shift+Space` | Global hotkey / Toggle window visibility |
+| `Ctrl+MouseWheel` | Zoom editor font size in/out |
+| `Ctrl+0` | Reset editor font size to default (14px) |
 
 ---
 
