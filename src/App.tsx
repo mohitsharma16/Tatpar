@@ -8,6 +8,7 @@ import { useAppStore } from "./store/app";
 import { useExecution } from "./hooks/useExecution";
 import { useSettings } from "./hooks/useSettings";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useResizable } from "./hooks/useResizable";
 import { checkLanguages } from "./api/tauri";
 import "./App.css";
 
@@ -20,6 +21,12 @@ function App() {
 
   const { run, cancel, isRunning } = useExecution();
   const { settings, load: loadSettings } = useSettings();
+  const {
+    height: terminalHeight,
+    isResizing,
+    startResizing,
+    toggleOrReset,
+  } = useResizable();
 
   // On startup: load settings + check which runtimes are available
   useEffect(() => {
@@ -45,7 +52,7 @@ function App() {
   });
 
   return (
-    <div className={`app-root ${settings.theme}`}>
+    <div className={`app-root ${settings.theme}${isResizing ? " app-resizing" : ""}`}>
       <Header onRun={handleRun} onCancel={cancel} isRunning={isRunning} />
       <main className="app-main">
         {panel === "settings" ? (
@@ -57,7 +64,23 @@ function App() {
             <div className="app-editor-pane">
               <Editor />
             </div>
-            <div className="app-terminal-pane">
+            <div
+              className={`app-resizer${isResizing ? " active" : ""}`}
+              onPointerDown={startResizing}
+              onDoubleClick={toggleOrReset}
+              role="separator"
+              aria-orientation="horizontal"
+              title="Drag to resize terminal (Double click to toggle)"
+            >
+              <div className="app-resizer-line" />
+            </div>
+            <div
+              className="app-terminal-pane"
+              style={{
+                height: `${terminalHeight}px`,
+                flex: `0 0 ${terminalHeight}px`,
+              }}
+            >
               <Terminal onClear={handleClear} />
             </div>
           </>
