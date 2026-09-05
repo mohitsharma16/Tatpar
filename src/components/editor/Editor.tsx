@@ -128,7 +128,7 @@ export function Editor({ onChange }: EditorProps) {
           cursorSmoothCaretAnimation: "on",
           smoothScrolling: true,
           automaticLayout: true,
-          tabSize: 4,
+          tabSize: activeLanguage.defaultTabSize ?? 4,
           insertSpaces: true,
           wordWrap: "on",
           padding: { top: 12, bottom: 12 },

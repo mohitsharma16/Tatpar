@@ -59,6 +59,7 @@ impl LanguageExecutor for PythonExecutor {
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
         let mut cmd = new_command(&python_cmd);
+        cmd.arg("-u");
         cmd.arg(&src);
         Ok(run_process(cmd, timeout_secs, cancel).await)
     }

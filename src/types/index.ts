@@ -26,6 +26,8 @@ export interface Language {
   defaultCode: string;
   /** Whether the language requires compilation before running */
   compiled: boolean;
+  /** Default indentation tab size in spaces */
+  defaultTabSize: number;
 }
 
 export const LANGUAGES: Record<LanguageId, Language> = {
@@ -35,6 +37,7 @@ export const LANGUAGES: Record<LanguageId, Language> = {
     extension: "kt",
     monacoLanguage: "kotlin",
     compiled: true,
+    defaultTabSize: 4,
     defaultCode: `fun main() {\n    println("Hello, Tatpar!")\n}`,
   },
   python: {
@@ -43,6 +46,7 @@ export const LANGUAGES: Record<LanguageId, Language> = {
     extension: "py",
     monacoLanguage: "python",
     compiled: false,
+    defaultTabSize: 4,
     defaultCode: `print("Hello, Tatpar!")`,
   },
   java: {
@@ -51,6 +55,7 @@ export const LANGUAGES: Record<LanguageId, Language> = {
     extension: "java",
     monacoLanguage: "java",
     compiled: true,
+    defaultTabSize: 4,
     defaultCode: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, Tatpar!");\n    }\n}`,
   },
   javascript: {
@@ -59,6 +64,7 @@ export const LANGUAGES: Record<LanguageId, Language> = {
     extension: "js",
     monacoLanguage: "javascript",
     compiled: false,
+    defaultTabSize: 2,
     defaultCode: `console.log("Hello, Tatpar!");`,
   },
   typescript: {
@@ -67,6 +73,7 @@ export const LANGUAGES: Record<LanguageId, Language> = {
     extension: "ts",
     monacoLanguage: "typescript",
     compiled: true,
+    defaultTabSize: 2,
     defaultCode: `const greet = (name: string): string => \`Hello, \${name}!\`;\nconsole.log(greet("Tatpar"));`,
   },
   cpp: {
@@ -75,6 +82,7 @@ export const LANGUAGES: Record<LanguageId, Language> = {
     extension: "cpp",
     monacoLanguage: "cpp",
     compiled: true,
+    defaultTabSize: 4,
     defaultCode: `#include <iostream>\n\nint main() {\n    std::cout << "Hello, Tatpar!" << std::endl;\n    return 0;\n}`,
   },
 };

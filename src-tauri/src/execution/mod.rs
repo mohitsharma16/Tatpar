@@ -98,7 +98,7 @@ pub fn resolve_path_for_lang(app: &AppHandle, language: &str) -> Option<String> 
         "python"     => &["python", "python3", "py"],
         "java"       => &["javac"],
         "javascript" => &["node", "bun"],
-        "typescript" => &["tsc"],
+        "typescript" => &["tsc", "tsx", "bun", "deno", "npx"],
         "cpp"        => &["g++", "clang++", "cl"],
         _            => return None,
     };
@@ -106,13 +106,6 @@ pub fn resolve_path_for_lang(app: &AppHandle, language: &str) -> Option<String> 
     for cmd in candidates {
         if let Ok(path) = which::which(cmd) {
             return Some(path.to_string_lossy().to_string());
-        }
-    }
-
-    // Special fallback check for TypeScript via npx if tsc isn't directly on PATH
-    if language == "typescript" && which::which("npx").is_ok() {
-        if let Ok(npx_path) = which::which("npx") {
-            return Some(format!("{} tsc", npx_path.to_string_lossy()));
         }
     }
 

@@ -34,8 +34,8 @@ impl LanguageExecutor for JavaExecutor {
         };
 
         let workspace = create_temp_workspace()?;
-        // Java requires the filename to match the public class name
-        let src = workspace.path().join("Main.java");
+        let class_name = extract_java_class_name(code);
+        let src = workspace.path().join(format!("{class_name}.java"));
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
         // ── Step 1: Compile ──────────────────────────────────────
@@ -62,10 +62,10 @@ impl LanguageExecutor for JavaExecutor {
             });
         }
 
-        // ── Step 2: Run (classpath = temp dir, class = Main) ─────
+        // ── Step 2: Run (classpath = temp dir, class = class_name) ─────
         let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000).max(2);
         let mut run_cmd = new_command("java");
-        run_cmd.arg("-cp").arg(workspace.path()).arg("Main");
+        run_cmd.arg("-cp").arg(workspace.path()).arg(&class_name);
         let run_result = run_process(run_cmd, remaining, cancel).await;
 
         Ok(ExecutionResult {
@@ -86,4 +86,50 @@ fn missing_runtime_result(tool: &str, hint: &str) -> ExecutionResult {
         status: "error".to_string(),
         timestamp: Utc::now().to_rfc3339(),
     }
+}
+
+/// Extracts the main class name from Java source code.
+/// Prioritizes `public class <Name>`, then falls back to any `class <Name>`.
+/// Defaults to "Main" if no class definition is found.
+fn extract_java_class_name(code: &str) -> String {
+    let mut fallback_class = None;
+
+    for line in code.lines() {
+        let line = if let Some((before, _)) = line.split_once("//") {
+            before.trim()
+        } else {
+            line.trim()
+        };
+
+        if line.is_empty() {
+            continue;
+        }
+
+        let words: Vec<&str> = line.split_whitespace().collect();
+        for i in 0..words.len() {
+            if words[i] == "class" && i + 1 < words.len() {
+                let candidate = words[i + 1]
+                    .trim_end_matches('{')
+                    .trim_end_matches('(')
+                    .trim();
+
+                let candidate = candidate.split('<').next().unwrap_or("").trim();
+
+                if !candidate.is_empty()
+                    && candidate
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_' || c == '$')
+                {
+                    if i > 0 && words[i - 1] == "public" {
+                        return candidate.to_string();
+                    }
+                    if fallback_class.is_none() {
+                        fallback_class = Some(candidate.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    fallback_class.unwrap_or_else(|| "Main".to_string())
 }

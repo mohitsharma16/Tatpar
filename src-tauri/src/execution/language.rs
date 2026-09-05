@@ -131,12 +131,33 @@ pub async fn run_process(
         }
     };
 
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+
+    let stdout_handle = tokio::spawn(async move {
+        let mut buf = Vec::new();
+        if let Some(mut stream) = stdout {
+            let _ = tokio::io::AsyncReadExt::read_to_end(&mut stream, &mut buf).await;
+        }
+        buf
+    });
+
+    let stderr_handle = tokio::spawn(async move {
+        let mut buf = Vec::new();
+        if let Some(mut stream) = stderr {
+            let _ = tokio::io::AsyncReadExt::read_to_end(&mut stream, &mut buf).await;
+        }
+        buf
+    });
+
     let timeout_duration = Duration::from_secs(timeout_secs);
     let check_interval = Duration::from_millis(40);
 
     loop {
         // 1. Check if user cancelled execution
         if *cancel.lock().unwrap() {
+            stdout_handle.abort();
+            stderr_handle.abort();
             let _ = child.kill().await;
             return ExecutionResult {
                 stdout: String::new(),
@@ -152,15 +173,8 @@ pub async fn run_process(
         match child.try_wait() {
             Ok(Some(status)) => {
                 let duration_ms = start.elapsed().as_millis() as u64;
-                let mut stdout_buf = Vec::new();
-                let mut stderr_buf = Vec::new();
-
-                if let Some(mut stdout) = child.stdout.take() {
-                    let _ = tokio::io::AsyncReadExt::read_to_end(&mut stdout, &mut stdout_buf).await;
-                }
-                if let Some(mut stderr) = child.stderr.take() {
-                    let _ = tokio::io::AsyncReadExt::read_to_end(&mut stderr, &mut stderr_buf).await;
-                }
+                let stdout_buf = stdout_handle.await.unwrap_or_default();
+                let stderr_buf = stderr_handle.await.unwrap_or_default();
 
                 let stdout = String::from_utf8_lossy(&stdout_buf).to_string();
                 let stderr = String::from_utf8_lossy(&stderr_buf).to_string();
@@ -180,6 +194,8 @@ pub async fn run_process(
                 // Process is still running
             }
             Err(e) => {
+                stdout_handle.abort();
+                stderr_handle.abort();
                 let _ = child.kill().await;
                 return ExecutionResult {
                     stdout: String::new(),
@@ -194,6 +210,8 @@ pub async fn run_process(
 
         // 3. Check for timeout
         if start.elapsed() >= timeout_duration {
+            stdout_handle.abort();
+            stderr_handle.abort();
             let _ = child.kill().await;
             return ExecutionResult {
                 stdout: String::new(),

@@ -1,6 +1,6 @@
 [package]
 name = "Tatpar"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tatpar — A persistent floating code editor"
 authors = ["Mohit"]
 edition = "2021"

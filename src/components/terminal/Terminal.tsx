@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Copy, Check, Trash2 } from "lucide-react";
 import { useAppStore } from "../../store/app";
 import type { ExecutionResult } from "../../types";
@@ -107,6 +107,14 @@ function TerminalBody({
   result: ExecutionResult | null;
   isRunning: boolean;
 }) {
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (result && bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+    }
+  }, [result]);
+
   if (isRunning) {
     return (
       <div className="terminal-body terminal-body--idle">
@@ -130,7 +138,7 @@ function TerminalBody({
   const hasStderr = result.stderr.trim().length > 0;
 
   return (
-    <div className="terminal-body terminal-body--output">
+    <div ref={bodyRef} className="terminal-body terminal-body--output">
       {/* stdout */}
       {hasStdout && (
         <pre className="terminal-output terminal-output--stdout">
