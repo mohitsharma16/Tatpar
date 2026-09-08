@@ -1,7 +1,12 @@
 // ============================================================
 // Tatpar — TypeScript Executor
-// Supports fast runners (bun, tsx, deno) and compiles via tsc/npx
-// On Windows, batch/cmd files (tsc.cmd, npx.cmd) route via new_command()
+// Execution strategy (in order):
+//   1. bun / tsx / deno   — fast direct runners if on PATH
+//   2. tsc (system)       — compile to JS, then node
+//   3. npx -y tsx         — zero-install fallback that runs .ts directly
+//                           WITHOUT the two-step tsc+node that triggers
+//                           Windows "How do you want to open .ts?" dialogs
+//   4. Error: no runtime found
 // ============================================================
 
 use super::language::{
@@ -28,7 +33,7 @@ impl LanguageExecutor for TypeScriptExecutor {
         let out = workspace.path().join("main.js");
         std::fs::write(&src, code).map_err(|e| e.to_string())?;
 
-        // ── 1. Custom runner or compiler override from Settings ──
+        // ── 1. Custom runner or compiler override from Settings ──────────────
         if let Some(ref path_str) = compiler_path {
             let trimmed = path_str.trim();
             if !trimmed.is_empty() {
@@ -44,7 +49,7 @@ impl LanguageExecutor for TypeScriptExecutor {
             }
         }
 
-        // ── 2. Direct fast runners on PATH (instant execution) ───
+        // ── 2. Direct fast runners on PATH (instant, no compile step) ────────
         if let Ok(bun) = which::which("bun") {
             let mut cmd = new_command(&bun.to_string_lossy());
             cmd.arg("run").arg(&src);
@@ -63,7 +68,7 @@ impl LanguageExecutor for TypeScriptExecutor {
             return Ok(run_process(cmd, timeout_secs, cancel).await);
         }
 
-        // ── 3. Standard `tsc` compiler on PATH ───────────────────
+        // ── 3. System tsc compiler ────────────────────────────────────────────
         if let Ok(tsc) = which::which("tsc") {
             return compile_and_run_tsc(
                 &tsc.to_string_lossy(),
@@ -76,57 +81,34 @@ impl LanguageExecutor for TypeScriptExecutor {
             .await;
         }
 
-        // ── 4. Fallback: npx -y tsc (non-interactive, never hangs) ───
+        // ── 4. Fallback: npx -y tsx (safe for production Windows) ────────────
+        //
+        // IMPORTANT: We use `tsx` here — NOT `tsc` — because:
+        //
+        //   • `npx -y tsc main.ts` passes a `.ts` file path through the Windows
+        //     shell, which triggers the "How do you want to open this .ts file?"
+        //     dialog (Windows maps .ts to MPEG-2 Transport Stream by default) in
+        //     the windowless production Tauri build. The dialog process exits 0
+        //     with no stdout, making it appear as a silent success / timeout.
+        //
+        //   • `npx -y tsx main.ts` runs the file entirely inside the Node.js
+        //     process via esbuild transpilation — no shell file association,
+        //     no separate compile step, no intermediate .js file needed.
+        //
         if let Ok(npx) = which::which("npx") {
-            let mut compile = new_command(&npx.to_string_lossy());
-            compile
-                .arg("-y")
-                .arg("tsc")
-                .arg(&src)
-                .arg("--outDir")
-                .arg(workspace.path())
-                .arg("--target")
-                .arg("ES2020")
-                .arg("--module")
-                .arg("commonjs")
-                .arg("--skipLibCheck");
-
-            let compile_result = run_process(compile, timeout_secs, Arc::clone(&cancel)).await;
-            if compile_result.status != "success" {
-                return Ok(ExecutionResult {
-                    stderr: format!("[Compile error]\n{}", compile_result.stderr),
-                    ..compile_result
-                });
-            }
-
-            if *cancel.lock().unwrap() {
-                return Ok(cancelled_result());
-            }
-
-            let node_executable = which::which("node")
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|_| "node".to_string());
-
-            let remaining = timeout_secs
-                .saturating_sub(compile_result.duration_ms / 1000)
-                .max(2);
-            let mut run_cmd = new_command(&node_executable);
-            run_cmd.arg(&out);
-            let run_result = run_process(run_cmd, remaining, cancel).await;
-
-            return Ok(ExecutionResult {
-                duration_ms: compile_result.duration_ms + run_result.duration_ms,
-                ..run_result
-            });
+            let mut cmd = new_command(&npx.to_string_lossy());
+            cmd.arg("-y").arg("tsx").arg(&src);
+            return Ok(run_process(cmd, timeout_secs, cancel).await);
         }
 
-        // ── 5. Neither tsc nor npx found ─────────────────────────
+        // ── 5. Nothing found ──────────────────────────────────────────────────
         Ok(missing_runtime_result(
-            "tsc / node",
-            "Install Node.js: https://nodejs.org/ and TypeScript globally: `npm install -g typescript`",
+            "tsx / tsc / node",
+            "Install Node.js (https://nodejs.org/) then run: npm install -g tsx",
         ))
     }
 }
+
 
 async fn compile_and_run_tsc(
     tsc_executable: &str,

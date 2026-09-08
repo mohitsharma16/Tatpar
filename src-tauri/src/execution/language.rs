@@ -81,6 +81,10 @@ pub fn cancelled_result() -> ExecutionResult {
 /// through `cmd /C`. On Windows these scripts cannot be spawned directly
 /// by a Rust process — they need the shell interpreter.
 ///
+/// In the production (windowless) Tauri build we also set CREATE_NO_WINDOW
+/// so that cmd.exe never flashes a console or triggers Windows shell
+/// file-association dialogs (e.g. the `.ts` → MPEG-2 handler).
+///
 /// Additional arguments should be appended to the returned Command as
 /// normal (they are passed after the script path to cmd /C).
 pub fn new_command(program: &str) -> Command {
@@ -92,16 +96,26 @@ pub fn new_command(program: &str) -> Command {
             .map(str::to_lowercase);
 
         if matches!(ext.as_deref(), Some("bat") | Some("cmd")) {
-            // Must run Windows batch/cmd scripts via the shell
+            // Must run Windows batch/cmd scripts via the shell.
+            // CREATE_NO_WINDOW (0x08000000) prevents console flash and
+            // shell-association dialogs in the windowless production build.
             let mut cmd = Command::new("cmd");
             cmd.arg("/C").arg(resolved);
+            #[cfg(target_os = "windows")]
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
             return cmd;
         }
-        // Real executable (.exe or no extension on Unix)
-        return Command::new(resolved);
+        // Real executable (.exe or no extension on Unix) — spawn directly.
+        let mut cmd = Command::new(resolved);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        return cmd;
     }
-    // which() failed — return a Command that will produce a clear OS error
-    Command::new(program)
+    // which() failed — return a Command that will produce a clear OS error.
+    let mut cmd = Command::new(program);
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    cmd
 }
 
 /// Run a subprocess with timeout and cancellation support, ensuring process cleanup on exit.
@@ -114,6 +128,9 @@ pub async fn run_process(
     let now = Utc::now().to_rfc3339();
 
     cmd.kill_on_drop(true);
+    // Pipe all I/O. Null stdin so no child process can block waiting for
+    // interactive input (e.g. npx package-install prompts in production).
+    cmd.stdin(std::process::Stdio::null());
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
 
