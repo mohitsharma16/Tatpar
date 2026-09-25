@@ -1,29 +1,51 @@
 import { useState } from "react";
-import { History as HistoryIcon, RotateCcw, Trash2, Copy, Check, Clock } from "lucide-react";
+import { History as HistoryIcon, RotateCcw, Trash2, Copy, Check, Clock, AlertTriangle } from "lucide-react";
 import { useAppStore } from "../../store/app";
 import { LANGUAGES } from "../../types";
 import type { HistoryEntry } from "../../types";
 
 // ============================================================
 // Tatpar — Execution History Panel
-// Phase 5 Step 3: Browse and restore previous runs
+// Fix #21: Guard against silent code loss when restoring from history.
+// If the current editor buffer differs from the history entry's code,
+// show a confirmation dialog before overwriting.
 // ============================================================
 
 export function HistoryPanel() {
-  const history = useAppStore((s) => s.history);
-  const clearHistory = useAppStore((s) => s.clearHistory);
+  const history       = useAppStore((s) => s.history);
+  const clearHistory  = useAppStore((s) => s.clearHistory);
   const setActiveLanguage = useAppStore((s) => s.setActiveLanguage);
-  const setCode = useAppStore((s) => s.setCode);
+  const setCode       = useAppStore((s) => s.setCode);
   const setExecutionResult = useAppStore((s) => s.setExecutionResult);
-  const setPanel = useAppStore((s) => s.setPanel);
+  const setPanel      = useAppStore((s) => s.setPanel);
+  const codePerLanguage = useAppStore((s) => s.codePerLanguage);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // #21: pending entry waiting for confirmation
+  const [pendingRestore, setPendingRestore] = useState<HistoryEntry | null>(null);
 
-  const handleRestore = (entry: HistoryEntry) => {
+  // Commit the restore — called either directly (no conflict) or after confirm
+  const commitRestore = (entry: HistoryEntry) => {
     setActiveLanguage(entry.language);
     setCode(entry.code);
     setExecutionResult(entry.result);
     setPanel("editor");
+    setPendingRestore(null);
+  };
+
+  // #21: Check whether the current buffer for the entry's language has
+  // unsaved/different content before overwriting it.
+  const handleRestore = (entry: HistoryEntry) => {
+    const currentCode = codePerLanguage[entry.language] ?? "";
+    const isSameCode  = currentCode.trim() === entry.code.trim();
+
+    if (isSameCode || currentCode.trim() === "") {
+      // No conflict — restore immediately
+      commitRestore(entry);
+    } else {
+      // Conflict — show confirmation dialog
+      setPendingRestore(entry);
+    }
   };
 
   const handleCopyCode = async (id: string, code: string, e: React.MouseEvent) => {
@@ -118,7 +140,7 @@ export function HistoryPanel() {
                       </button>
                       <button
                         className="history-restore-btn"
-                        onClick={() => handleRestore(entry)}
+                        onClick={(e) => { e.stopPropagation(); handleRestore(entry); }}
                         title="Restore into editor"
                       >
                         <RotateCcw size={11} />
@@ -147,6 +169,56 @@ export function HistoryPanel() {
           </div>
         )}
       </div>
+
+      {/* ── Fix #21: Restore Confirmation Dialog ─────────────────── */}
+      {pendingRestore && (
+        <div
+          className="restore-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="restore-dialog-title"
+          onClick={() => setPendingRestore(null)}
+        >
+          <div
+            className="restore-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="restore-dialog-icon">
+              <AlertTriangle size={20} />
+            </div>
+
+            <div className="restore-dialog-body">
+              <h3 id="restore-dialog-title" className="restore-dialog-title">
+                Overwrite current code?
+              </h3>
+              <p className="restore-dialog-desc">
+                Your current{" "}
+                <strong>{LANGUAGES[pendingRestore.language]?.name ?? pendingRestore.language}</strong>{" "}
+                buffer has unsaved changes. Restoring this snippet will replace it permanently.
+              </p>
+            </div>
+
+            <div className="restore-dialog-actions">
+              <button
+                id="restore-cancel-btn"
+                className="restore-dialog-btn restore-dialog-btn--cancel"
+                onClick={() => setPendingRestore(null)}
+              >
+                Keep current
+              </button>
+              <button
+                id="restore-confirm-btn"
+                className="restore-dialog-btn restore-dialog-btn--confirm"
+                onClick={() => commitRestore(pendingRestore)}
+                autoFocus
+              >
+                <RotateCcw size={12} />
+                Restore anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
