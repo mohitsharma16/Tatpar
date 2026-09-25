@@ -27,6 +27,9 @@ interface AppActions {
   // Editor
   setCode: (code: string) => void;
 
+  // Stdin drawer
+  setStdin: (stdin: string) => void;
+
   // Execution
   setRunning: (running: boolean) => void;
   setExecutionResult: (result: ExecutionResult | null) => void;
@@ -61,6 +64,7 @@ export const useAppStore = create<AppStore>()(
       // ─── Initial State ────────────────────────────────────
       activeLanguage: "kotlin",
       codePerLanguage: buildInitialCodeMap(),
+      stdinPerLanguage: {} as Record<string, string>,
       executionResult: null,
       isRunning: false,
       history: [],
@@ -81,6 +85,17 @@ export const useAppStore = create<AppStore>()(
           codePerLanguage: {
             ...state.codePerLanguage,
             [activeLanguage]: code,
+          },
+        }));
+      },
+
+      // ─── Stdin ────────────────────────────────────────────
+      setStdin: (stdin) => {
+        const { activeLanguage } = get();
+        set((state) => ({
+          stdinPerLanguage: {
+            ...state.stdinPerLanguage,
+            [activeLanguage]: stdin,
           },
         }));
       },
@@ -136,6 +151,10 @@ export const useAppStore = create<AppStore>()(
 /** Returns the code for the currently active language */
 export const useCurrentCode = () =>
   useAppStore((s) => s.codePerLanguage[s.activeLanguage]);
+
+/** Returns the stdin text for the currently active language */
+export const useCurrentStdin = () =>
+  useAppStore((s) => s.stdinPerLanguage[s.activeLanguage] ?? "");
 
 /** Returns the Language definition for the active language */
 export const useActiveLanguage = () =>

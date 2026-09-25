@@ -10,8 +10,8 @@
 // ============================================================
 
 use super::language::{
-    cancelled_result, create_temp_workspace, new_command, run_process, ExecutionResult,
-    LanguageExecutor,
+    cancelled_result, create_temp_workspace, new_command, run_process, run_process_with_stdin,
+    ExecutionResult, LanguageExecutor,
 };
 use async_trait::async_trait;
 use chrono::Utc;
@@ -27,6 +27,7 @@ impl LanguageExecutor for TypeScriptExecutor {
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
         compiler_path: Option<String>,
+        stdin: Option<String>,
     ) -> Result<ExecutionResult, String> {
         let workspace = create_temp_workspace()?;
         let src = workspace.path().join("main.ts");
@@ -39,12 +40,12 @@ impl LanguageExecutor for TypeScriptExecutor {
             if !trimmed.is_empty() {
                 let lower = trimmed.to_lowercase();
                 if lower.ends_with("tsc") || lower.ends_with("tsc.cmd") || lower.ends_with("tsc.exe") {
-                    return compile_and_run_tsc(trimmed, &src, &out, workspace.path(), timeout_secs, cancel).await;
+                    return compile_and_run_tsc(trimmed, &src, &out, workspace.path(), timeout_secs, cancel, stdin).await;
                 } else {
                     // Direct runner (e.g. tsx, bun, deno)
                     let mut cmd = new_command(trimmed);
                     cmd.arg(&src);
-                    return Ok(run_process(cmd, timeout_secs, cancel).await);
+                    return Ok(run_process_with_stdin(cmd, timeout_secs, cancel, stdin).await);
                 }
             }
         }
@@ -53,19 +54,19 @@ impl LanguageExecutor for TypeScriptExecutor {
         if let Ok(bun) = which::which("bun") {
             let mut cmd = new_command(&bun.to_string_lossy());
             cmd.arg("run").arg(&src);
-            return Ok(run_process(cmd, timeout_secs, cancel).await);
+            return Ok(run_process_with_stdin(cmd, timeout_secs, cancel, stdin).await);
         }
 
         if let Ok(tsx) = which::which("tsx") {
             let mut cmd = new_command(&tsx.to_string_lossy());
             cmd.arg(&src);
-            return Ok(run_process(cmd, timeout_secs, cancel).await);
+            return Ok(run_process_with_stdin(cmd, timeout_secs, cancel, stdin).await);
         }
 
         if let Ok(deno) = which::which("deno") {
             let mut cmd = new_command(&deno.to_string_lossy());
             cmd.arg("run").arg(&src);
-            return Ok(run_process(cmd, timeout_secs, cancel).await);
+            return Ok(run_process_with_stdin(cmd, timeout_secs, cancel, stdin).await);
         }
 
         // ── 3. System tsc compiler ────────────────────────────────────────────
@@ -77,6 +78,7 @@ impl LanguageExecutor for TypeScriptExecutor {
                 workspace.path(),
                 timeout_secs,
                 cancel,
+                stdin,
             )
             .await;
         }
@@ -98,7 +100,7 @@ impl LanguageExecutor for TypeScriptExecutor {
         if let Ok(npx) = which::which("npx") {
             let mut cmd = new_command(&npx.to_string_lossy());
             cmd.arg("-y").arg("tsx").arg(&src);
-            return Ok(run_process(cmd, timeout_secs, cancel).await);
+            return Ok(run_process_with_stdin(cmd, timeout_secs, cancel, stdin).await);
         }
 
         // ── 5. Nothing found ──────────────────────────────────────────────────
@@ -117,6 +119,7 @@ async fn compile_and_run_tsc(
     out_dir: &std::path::Path,
     timeout_secs: u64,
     cancel: Arc<Mutex<bool>>,
+    stdin: Option<String>,
 ) -> Result<ExecutionResult, String> {
     let mut compile = new_command(tsc_executable);
     compile
@@ -150,7 +153,7 @@ async fn compile_and_run_tsc(
         .max(2);
     let mut run_cmd = new_command(&node_executable);
     run_cmd.arg(out);
-    let run_result = run_process(run_cmd, remaining, cancel).await;
+    let run_result = run_process_with_stdin(run_cmd, remaining, cancel, stdin).await;
 
     Ok(ExecutionResult {
         duration_ms: compile_result.duration_ms + run_result.duration_ms,

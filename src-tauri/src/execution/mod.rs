@@ -39,14 +39,15 @@ pub async fn execute_code(
     let cancel = Arc::clone(&state.cancel_flag);
     let timeout = request.timeout_secs.unwrap_or(10);
     let compiler_path = resolve_path_for_lang(&app, &request.language);
+    let stdin = request.stdin.clone();
 
     let result = match request.language.as_str() {
-        "kotlin"     => kotlin::KotlinExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
-        "python"     => python::PythonExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
-        "java"       => java::JavaExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
-        "javascript" => javascript::JavaScriptExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
-        "typescript" => typescript::TypeScriptExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
-        "cpp"        => cpp::CppExecutor.execute(&request.code, timeout, cancel, compiler_path).await,
+        "kotlin"     => kotlin::KotlinExecutor.execute(&request.code, timeout, cancel, compiler_path, stdin).await,
+        "python"     => python::PythonExecutor.execute(&request.code, timeout, cancel, compiler_path, stdin).await,
+        "java"       => java::JavaExecutor.execute(&request.code, timeout, cancel, compiler_path, stdin).await,
+        "javascript" => javascript::JavaScriptExecutor.execute(&request.code, timeout, cancel, compiler_path, stdin).await,
+        "typescript" => typescript::TypeScriptExecutor.execute(&request.code, timeout, cancel, compiler_path, stdin).await,
+        "cpp"        => cpp::CppExecutor.execute(&request.code, timeout, cancel, compiler_path, stdin).await,
         other        => Err(format!("Unsupported language: {other}")),
     };
 

@@ -10,9 +10,10 @@ import { LANGUAGE_LIST } from "../types";
 export interface KeyboardShortcutsProps {
   onRun: () => void;
   onClear: () => void;
+  onToggleStdin?: () => void;
 }
 
-export function useKeyboardShortcuts({ onRun, onClear }: KeyboardShortcutsProps) {
+export function useKeyboardShortcuts({ onRun, onClear, onToggleStdin }: KeyboardShortcutsProps) {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const setActiveLanguage = useAppStore((s) => s.setActiveLanguage);
@@ -32,6 +33,13 @@ export function useKeyboardShortcuts({ onRun, onClear }: KeyboardShortcutsProps)
           setPanel("editor");
           return;
         }
+      }
+
+      // ── Ctrl+I : Toggle stdin drawer ──────────────────────
+      if ((e.ctrlKey || e.metaKey) && (e.key === "i" || e.key === "I") && !e.shiftKey) {
+        e.preventDefault();
+        onToggleStdin?.();
+        return;
       }
 
       // ── Ctrl+H : Toggle Execution History ─────────────────

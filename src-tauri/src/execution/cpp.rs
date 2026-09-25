@@ -3,7 +3,7 @@
 // Compiles with `g++` (or `clang++`) and runs the binary
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
+use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, run_process_with_stdin, new_command};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use tokio::process::Command;
@@ -19,6 +19,7 @@ impl LanguageExecutor for CppExecutor {
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
         compiler_path: Option<String>,
+        stdin: Option<String>,
     ) -> Result<ExecutionResult, String> {
         let compiler_cmd = match compiler_path {
             Some(ref path) => path.clone(),
@@ -72,7 +73,7 @@ impl LanguageExecutor for CppExecutor {
         // ── Step 2: Run binary ───────────────────────────────────
         let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000).max(2);
         let run_cmd = Command::new(&bin);
-        let run_result = run_process(run_cmd, remaining, cancel).await;
+        let run_result = run_process_with_stdin(run_cmd, remaining, cancel, stdin).await;
 
         Ok(ExecutionResult {
             duration_ms: compile_result.duration_ms + run_result.duration_ms,

@@ -19,6 +19,9 @@ pub struct ExecutionRequest {
     pub language: String,
     pub code: String,
     pub timeout_secs: Option<u64>,
+    /// Optional mock stdin piped to the process before it starts reading.
+    #[serde(default)]
+    pub stdin: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -50,6 +53,7 @@ pub trait LanguageExecutor: Send + Sync {
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
         compiler_path: Option<String>,
+        stdin: Option<String>,
     ) -> Result<ExecutionResult, String>;
 }
 
@@ -151,17 +155,33 @@ pub fn new_command(program: &str) -> Command {
 
 /// Run a subprocess with timeout and cancellation support, ensuring process cleanup on exit.
 pub async fn run_process(
+    cmd: Command,
+    timeout_secs: u64,
+    cancel: Arc<Mutex<bool>>,
+) -> ExecutionResult {
+    run_process_with_stdin(cmd, timeout_secs, cancel, None).await
+}
+
+/// Like run_process but pipes `stdin_input` bytes into the child process before
+/// it starts blocking on reads. Used for Issue #8 (interactive stdin drawer).
+pub async fn run_process_with_stdin(
     mut cmd: Command,
     timeout_secs: u64,
     cancel: Arc<Mutex<bool>>,
+    stdin_input: Option<String>,
 ) -> ExecutionResult {
     let start = Instant::now();
     let now = Utc::now().to_rfc3339();
 
     cmd.kill_on_drop(true);
-    // Pipe all I/O. Null stdin so no child process can block waiting for
-    // interactive input (e.g. npx package-install prompts in production).
-    cmd.stdin(std::process::Stdio::null());
+    // Pipe stdout/stderr always. For stdin: if the caller provided mock
+    // input, open a pipe so we can write it; otherwise null it out so
+    // no child process can block waiting for interactive input.
+    if stdin_input.is_some() {
+        cmd.stdin(std::process::Stdio::piped());
+    } else {
+        cmd.stdin(std::process::Stdio::null());
+    }
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
 
@@ -178,6 +198,15 @@ pub async fn run_process(
             };
         }
     };
+
+    // Write mock stdin bytes then close the pipe so the child sees EOF.
+    if let Some(input) = stdin_input {
+        if let Some(mut stdin_pipe) = child.stdin.take() {
+            use tokio::io::AsyncWriteExt;
+            let _ = stdin_pipe.write_all(input.as_bytes()).await;
+            // Drop closes the pipe — child gets EOF on its stdin.
+        }
+    }
 
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();

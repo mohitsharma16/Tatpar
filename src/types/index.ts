@@ -111,6 +111,8 @@ export interface ExecutionRequest {
   code: string;
   /** Timeout in seconds (default: 10) */
   timeoutSecs?: number;
+  /** Optional stdin to pipe to the process. Omit or leave empty for no stdin. */
+  stdin?: string;
 }
 
 // ------------------------------------------------------------
@@ -202,6 +204,8 @@ export interface AppState {
   activeLanguage: LanguageId;
   /** Code per language (persisted across language switches) */
   codePerLanguage: Record<LanguageId, string>;
+  /** Stdin text per language (persisted, optional) */
+  stdinPerLanguage: Record<string, string>;
   /** Current execution result */
   executionResult: ExecutionResult | null;
   /** Whether a run is in progress */

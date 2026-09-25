@@ -3,7 +3,7 @@
 // Runs directly with `node`
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process};
+use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process_with_stdin};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use tokio::process::Command;
@@ -19,6 +19,7 @@ impl LanguageExecutor for JavaScriptExecutor {
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
         compiler_path: Option<String>,
+        stdin: Option<String>,
     ) -> Result<ExecutionResult, String> {
         let node_cmd = match compiler_path {
             Some(ref path) => path.clone(),
@@ -39,7 +40,7 @@ impl LanguageExecutor for JavaScriptExecutor {
 
         let mut cmd = Command::new(&node_cmd);
         cmd.arg(&src);
-        Ok(run_process(cmd, timeout_secs, cancel).await)
+        Ok(run_process_with_stdin(cmd, timeout_secs, cancel, stdin).await)
     }
 }
 

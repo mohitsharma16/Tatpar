@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Editor } from "./components/editor/Editor";
 import { Header } from "./components/ui/Header";
 import { Terminal } from "./components/terminal/Terminal";
+import { StdinDrawer } from "./components/terminal/StdinDrawer";
 import { SettingsPanel } from "./components/ui/Settings";
 import { TrayHintToast } from "./components/ui/Settings";
 import { HistoryPanel } from "./components/history/History";
@@ -19,6 +20,7 @@ function App() {
   const setExecutionResult = useAppStore((s) => s.setExecutionResult);
   const setLanguageAvailability = useAppStore((s) => s.setLanguageAvailability);
   const panel = useAppStore((s) => s.panel);
+  const [stdinOpen, setStdinOpen] = useState(false);
 
   const { run, cancel, isRunning } = useExecution();
   const { settings, load: loadSettings } = useSettings();
@@ -50,6 +52,7 @@ function App() {
   useKeyboardShortcuts({
     onRun: handleRun,
     onClear: handleClear,
+    onToggleStdin: () => setStdinOpen((v) => !v),
   });
 
   return (
@@ -82,6 +85,7 @@ function App() {
                 flex: `0 0 ${terminalHeight}px`,
               }}
             >
+              <StdinDrawer open={stdinOpen} onToggle={() => setStdinOpen((v) => !v)} />
               <Terminal onClear={handleClear} />
             </div>
           </>

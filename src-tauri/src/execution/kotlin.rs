@@ -14,8 +14,8 @@
 // ============================================================
 
 use super::language::{
-    cancelled_result, create_temp_workspace, new_command, run_process, ExecutionResult,
-    LanguageExecutor,
+    cancelled_result, create_temp_workspace, new_command, run_process, run_process_with_stdin,
+    ExecutionResult, LanguageExecutor,
 };
 use async_trait::async_trait;
 use chrono::Utc;
@@ -31,6 +31,7 @@ impl LanguageExecutor for KotlinExecutor {
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
         compiler_path: Option<String>,
+        stdin: Option<String>,
     ) -> Result<ExecutionResult, String> {
         // ── Resolve kotlinc path ──────────────────────────────────
         let kotlinc_cmd = match compiler_path {
@@ -87,7 +88,7 @@ impl LanguageExecutor for KotlinExecutor {
         let run_result = if which::which("kotlin").is_ok() {
             let mut run_cmd = new_command("kotlin");
             run_cmd.arg("-cp").arg(&classes).arg("MainKt");
-            run_process(run_cmd, remaining, Arc::clone(&cancel)).await
+            run_process_with_stdin(run_cmd, remaining, Arc::clone(&cancel), stdin).await
         } else {
             // Build a java -cp that includes the Kotlin stdlib.
             // kotlinc's home directory is one level above the kotlinc binary.
@@ -102,7 +103,7 @@ impl LanguageExecutor for KotlinExecutor {
             };
             let mut run_cmd = new_command("java");
             run_cmd.arg("-cp").arg(&cp).arg("MainKt");
-            run_process(run_cmd, remaining, Arc::clone(&cancel)).await
+            run_process_with_stdin(run_cmd, remaining, Arc::clone(&cancel), stdin).await
         };
 
         Ok(ExecutionResult {

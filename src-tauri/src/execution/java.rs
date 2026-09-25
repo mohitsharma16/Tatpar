@@ -4,7 +4,7 @@
 // NOTE: filename must be Main.java (class must be named Main)
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
+use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, run_process_with_stdin, new_command};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use chrono::Utc;
@@ -19,6 +19,7 @@ impl LanguageExecutor for JavaExecutor {
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
         compiler_path: Option<String>,
+        stdin: Option<String>,
     ) -> Result<ExecutionResult, String> {
         let javac_cmd = match compiler_path {
             Some(ref path) => path.clone(),
@@ -66,7 +67,7 @@ impl LanguageExecutor for JavaExecutor {
         let remaining = timeout_secs.saturating_sub(compile_result.duration_ms / 1000).max(2);
         let mut run_cmd = new_command("java");
         run_cmd.arg("-cp").arg(workspace.path()).arg(&class_name);
-        let run_result = run_process(run_cmd, remaining, cancel).await;
+        let run_result = run_process_with_stdin(run_cmd, remaining, cancel, stdin).await;
 
         Ok(ExecutionResult {
             duration_ms: compile_result.duration_ms + run_result.duration_ms,

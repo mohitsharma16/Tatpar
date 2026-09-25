@@ -21,6 +21,7 @@ export function useExecution(): UseExecutionReturn {
   const addToHistory = useAppStore((s) => s.addToHistory);
   const isRunning = useAppStore((s) => s.isRunning);
   const languageSettings = useAppStore((s) => s.settings.languageSettings);
+  const stdinPerLanguage = useAppStore((s) => s.stdinPerLanguage);
 
   const run = useCallback(
     async (language: LanguageId, code: string) => {
@@ -30,12 +31,16 @@ export function useExecution(): UseExecutionReturn {
       setExecutionResult(null);
 
       const timeoutSecs = languageSettings[language]?.timeoutSecs ?? 10;
+      // Pass stdin only if the user has typed something — empty string = None on Rust side
+      const stdinText = stdinPerLanguage[language]?.trim() ?? "";
+      const stdin = stdinText.length > 0 ? stdinText : undefined;
 
       try {
         const result = await executeCode({
           language,
           code,
           timeoutSecs,
+          stdin,
         });
 
         setExecutionResult(result);
@@ -54,7 +59,7 @@ export function useExecution(): UseExecutionReturn {
         setRunning(false);
       }
     },
-    [isRunning, setRunning, setExecutionResult, addToHistory, languageSettings]
+    [isRunning, setRunning, setExecutionResult, addToHistory, languageSettings, stdinPerLanguage]
   );
 
   const cancel = useCallback(() => {

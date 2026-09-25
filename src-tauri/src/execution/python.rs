@@ -6,7 +6,7 @@
 //       use `python` on Windows.
 // ============================================================
 
-use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process, new_command};
+use super::language::{LanguageExecutor, ExecutionResult, create_temp_workspace, run_process_with_stdin, new_command};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use chrono::Utc;
@@ -21,6 +21,7 @@ impl LanguageExecutor for PythonExecutor {
         timeout_secs: u64,
         cancel: Arc<Mutex<bool>>,
         compiler_path: Option<String>,
+        stdin: Option<String>,
     ) -> Result<ExecutionResult, String> {
         let python_cmd = match compiler_path {
             Some(path) => path,
@@ -61,7 +62,7 @@ impl LanguageExecutor for PythonExecutor {
         let mut cmd = new_command(&python_cmd);
         cmd.arg("-u");
         cmd.arg(&src);
-        Ok(run_process(cmd, timeout_secs, cancel).await)
+        Ok(run_process_with_stdin(cmd, timeout_secs, cancel, stdin).await)
     }
 }
 
