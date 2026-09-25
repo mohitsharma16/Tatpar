@@ -76,6 +76,37 @@ pub fn cancelled_result() -> ExecutionResult {
     }
 }
 
+/// Kill an entire process tree by PID.
+///
+/// Fix for issue #19:
+///
+/// On Windows, `child.kill()` only terminates the top-level process (usually
+/// `cmd.exe`). The real compiler or runner (kotlinc JVM, tsc Node process, etc.)
+/// is a child of cmd.exe and keeps running as an orphan — burning CPU and holding
+/// locks on temp files indefinitely.
+///
+/// Solution: On Windows we run `taskkill /PID <pid> /T /F` which kills the
+/// process AND all of its descendants atomically before falling through to the
+/// regular kill. On non-Windows platforms we just do the normal kill.
+async fn kill_process_tree(child: &mut tokio::process::Child) {
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(pid) = child.id() {
+            // /T = kill tree (all children recursively)
+            // /F = force (no graceful shutdown dialog)
+            // CREATE_NO_WINDOW = no console flash in the windowless Tauri build
+            use std::os::windows::process::CommandExt;
+            let _ = std::process::Command::new("taskkill")
+                .args(["/PID", &pid.to_string(), "/T", "/F"])
+                .creation_flags(0x08000000)
+                .output();
+        }
+    }
+    // Always attempt the Tokio native kill as a safety net (handles the case
+    // where taskkill was unavailable or the process had already exited).
+    let _ = child.kill().await;
+}
+
 /// Create a Command for the given program, correctly handling Windows
 /// `.bat` / `.cmd` wrappers (kotlinc, tsc, npx, etc.) by routing them
 /// through `cmd /C`. On Windows these scripts cannot be spawned directly
@@ -83,7 +114,7 @@ pub fn cancelled_result() -> ExecutionResult {
 ///
 /// In the production (windowless) Tauri build we also set CREATE_NO_WINDOW
 /// so that cmd.exe never flashes a console or triggers Windows shell
-/// file-association dialogs (e.g. the `.ts` → MPEG-2 handler).
+/// file-association dialogs (e.g. the `.ts` -> MPEG-2 handler).
 ///
 /// Additional arguments should be appended to the returned Command as
 /// normal (they are passed after the script path to cmd /C).
@@ -175,7 +206,9 @@ pub async fn run_process(
         if *cancel.lock().unwrap() {
             stdout_handle.abort();
             stderr_handle.abort();
-            let _ = child.kill().await;
+            // Fix #19: kill the entire process tree so kotlinc JVM / tsc node
+            // don't survive as orphans after cmd.exe is terminated.
+            kill_process_tree(&mut child).await;
             return ExecutionResult {
                 stdout: String::new(),
                 stderr: "[Process cancelled by user]".to_string(),
@@ -208,12 +241,13 @@ pub async fn run_process(
                 };
             }
             Ok(None) => {
-                // Process is still running
+                // Process is still running — continue polling
             }
             Err(e) => {
                 stdout_handle.abort();
                 stderr_handle.abort();
-                let _ = child.kill().await;
+                // Fix #19: kill the entire process tree on unexpected wait error.
+                kill_process_tree(&mut child).await;
                 return ExecutionResult {
                     stdout: String::new(),
                     stderr: format!("Error waiting for process: {e}"),
@@ -229,7 +263,9 @@ pub async fn run_process(
         if start.elapsed() >= timeout_duration {
             stdout_handle.abort();
             stderr_handle.abort();
-            let _ = child.kill().await;
+            // Fix #19: kill the entire process tree on timeout so no orphan
+            // compiler processes keep running after the user's timeout.
+            kill_process_tree(&mut child).await;
             return ExecutionResult {
                 stdout: String::new(),
                 stderr: format!("[Process timed out after {}s]", timeout_secs),
