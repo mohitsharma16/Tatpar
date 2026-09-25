@@ -38,6 +38,8 @@ pub struct WindowSettings {
     pub x: Option<i32>,
     pub y: Option<i32>,
     pub always_on_top: bool,
+    /// "minimize" = hide to tray (default) | "quit" = fully exit the app
+    pub close_action: String,
 }
 
 impl Default for WindowSettings {
@@ -48,6 +50,7 @@ impl Default for WindowSettings {
             x: None,
             y: None,
             always_on_top: true,
+            close_action: "minimize".to_string(),
         }
     }
 }
@@ -179,7 +182,13 @@ fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
             network_enabled INTEGER NOT NULL,
             compiler_path   TEXT
         );",
-    )
+    )?;
+    // Fix #22: safe migration — ADD COLUMN is a no-op if the column already exists
+    // (SQLite returns an error we explicitly ignore).
+    let _ = conn.execute_batch(
+        "ALTER TABLE settings ADD COLUMN window_close_action TEXT NOT NULL DEFAULT 'minimize';",
+    );
+    Ok(())
 }
 
 fn seed_defaults(conn: &Connection) -> rusqlite::Result<()> {
@@ -203,7 +212,8 @@ pub fn read_settings_sync(app: &AppHandle) -> Settings {
 fn read_settings(conn: &Connection) -> rusqlite::Result<Settings> {
     let mut settings = conn.query_row(
         "SELECT hotkey, theme, editor_font_size, launch_on_startup,
-                window_width, window_height, window_x, window_y, window_always_on_top
+                window_width, window_height, window_x, window_y,
+                window_always_on_top, window_close_action
          FROM settings WHERE id = 1",
         [],
         |row| {
@@ -219,6 +229,8 @@ fn read_settings(conn: &Connection) -> rusqlite::Result<Settings> {
                     x: row.get::<_, Option<i64>>(6)?.map(|v| v as i32),
                     y: row.get::<_, Option<i64>>(7)?.map(|v| v as i32),
                     always_on_top: row.get::<_, i64>(8)? != 0,
+                    close_action: row.get::<_, Option<String>>(9)?
+                        .unwrap_or_else(|| "minimize".to_string()),
                 },
             })
         },
@@ -255,8 +267,9 @@ fn write_settings(conn: &Connection, settings: &Settings) -> rusqlite::Result<()
     conn.execute(
         "INSERT INTO settings
             (id, hotkey, theme, editor_font_size, launch_on_startup,
-             window_width, window_height, window_x, window_y, window_always_on_top)
-         VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+             window_width, window_height, window_x, window_y,
+             window_always_on_top, window_close_action)
+         VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
          ON CONFLICT(id) DO UPDATE SET
             hotkey = excluded.hotkey,
             theme = excluded.theme,
@@ -266,7 +279,8 @@ fn write_settings(conn: &Connection, settings: &Settings) -> rusqlite::Result<()
             window_height = excluded.window_height,
             window_x = excluded.window_x,
             window_y = excluded.window_y,
-            window_always_on_top = excluded.window_always_on_top",
+            window_always_on_top = excluded.window_always_on_top,
+            window_close_action = excluded.window_close_action",
         params![
             settings.hotkey,
             settings.theme,
@@ -277,6 +291,7 @@ fn write_settings(conn: &Connection, settings: &Settings) -> rusqlite::Result<()
             settings.window.x,
             settings.window.y,
             settings.window.always_on_top as i64,
+            settings.window.close_action,
         ],
     )?;
 
@@ -306,7 +321,9 @@ pub fn read_window_settings(app: &AppHandle) -> WindowSettings {
     };
 
     conn.query_row(
-        "SELECT window_width, window_height, window_x, window_y, window_always_on_top FROM settings WHERE id = 1",
+        "SELECT window_width, window_height, window_x, window_y,
+                window_always_on_top, window_close_action
+         FROM settings WHERE id = 1",
         [],
         |row| {
             Ok(WindowSettings {
@@ -315,10 +332,18 @@ pub fn read_window_settings(app: &AppHandle) -> WindowSettings {
                 x: row.get::<_, Option<i64>>(2)?.map(|v| v as i32),
                 y: row.get::<_, Option<i64>>(3)?.map(|v| v as i32),
                 always_on_top: row.get::<_, i64>(4)? != 0,
+                close_action: row.get::<_, Option<String>>(5)?
+                    .unwrap_or_else(|| "minimize".to_string()),
             })
         },
     )
     .unwrap_or_default()
+}
+
+/// Quick read of just the close_action string — used by CloseRequested handler
+/// in lib.rs to decide whether to hide or quit. Falls back to "minimize".
+pub fn read_close_action(app: &AppHandle) -> String {
+    read_window_settings(app).close_action
 }
 
 /// Read the global hotkey string — used at startup before the frontend
@@ -360,6 +385,16 @@ pub fn persist_window_geometry(
 #[command]
 pub async fn load_settings(app: AppHandle) -> Result<Settings, String> {
     Ok(read_settings_sync(&app))
+}
+
+/// Quit the app cleanly — flushes geometry first so the last position is
+/// preserved. Exposed as a Tauri command so the frontend can trigger a
+/// graceful exit (e.g. from the tray-hint toast dismiss with quit option).
+#[command]
+pub async fn quit_app(app: AppHandle) -> Result<(), String> {
+    crate::window::flush_pending_geometry(&app);
+    app.exit(0);
+    Ok(())
 }
 
 /// Save settings to the database. Window geometry (x/y/width/height) is

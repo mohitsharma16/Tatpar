@@ -9,7 +9,7 @@ mod settings;
 mod tray;
 mod window;
 
-use tauri::{Manager, WindowEvent};
+use tauri::{Emitter, Manager, WindowEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -47,9 +47,20 @@ pub fn run() {
             let win_clone = main_window.clone();
             main_window.on_window_event(move |event| match event {
                 WindowEvent::CloseRequested { api, .. } => {
-                    api.prevent_close();
-                    window::flush_pending_geometry(&app_handle);
-                    let _ = win_clone.hide();
+                    let close_action = settings::read_close_action(&app_handle);
+                    if close_action == "quit" {
+                        // User chose "Quit" close action — flush geometry and exit cleanly.
+                        window::flush_pending_geometry(&app_handle);
+                        app_handle.exit(0);
+                    } else {
+                        // Default: minimize to tray.
+                        // Emit a one-time frontend toast the first time we hide to tray
+                        // so the user understands the app is still running (#22).
+                        api.prevent_close();
+                        window::flush_pending_geometry(&app_handle);
+                        let _ = win_clone.hide();
+                        let _ = win_clone.emit("tray-hint", ());
+                    }
                 }
                 WindowEvent::Moved(position) => {
                     let size = win_clone.inner_size().unwrap_or_default();
@@ -87,6 +98,7 @@ pub fn run() {
             // Settings
             settings::load_settings,
             settings::save_settings,
+            settings::quit_app,
             // Window
             window::set_always_on_top,
             window::minimize_to_tray,

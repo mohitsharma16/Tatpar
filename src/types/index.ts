@@ -145,6 +145,8 @@ export interface WindowSettings {
   x: number | null;
   y: number | null;
   alwaysOnTop: boolean;
+  /** What the X close button does: hide to tray or fully quit */
+  closeAction: "minimize" | "quit";
 }
 
 export interface Settings {
@@ -185,6 +187,7 @@ export const DEFAULT_SETTINGS: Settings = {
     x: null,
     y: null,
     alwaysOnTop: true,
+    closeAction: "minimize",
   },
 };
 

@@ -3,6 +3,7 @@ import { Editor } from "./components/editor/Editor";
 import { Header } from "./components/ui/Header";
 import { Terminal } from "./components/terminal/Terminal";
 import { SettingsPanel } from "./components/ui/Settings";
+import { TrayHintToast } from "./components/ui/Settings";
 import { HistoryPanel } from "./components/history/History";
 import { useAppStore } from "./store/app";
 import { useExecution } from "./hooks/useExecution";
@@ -86,6 +87,8 @@ function App() {
           </>
         )}
       </main>
+      {/* Fix #22: one-time tray notification */}
+      <TrayHintToast />
     </div>
   );
 }

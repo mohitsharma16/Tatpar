@@ -76,6 +76,14 @@ export async function saveSettings(settings: Settings): Promise<void> {
   return invoke<void>("save_settings", { settings });
 }
 
+/**
+ * Quit the app cleanly (flushes window geometry first).
+ * Corresponds to Rust command: `quit_app`
+ */
+export async function quitApp(): Promise<void> {
+  return invoke<void>("quit_app");
+}
+
 // ------------------------------------------------------------
 // Window Commands
 // ------------------------------------------------------------

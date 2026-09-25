@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
+import { listen } from "@tauri-apps/api/event";
 import { useAppStore, useSettings as useSettingsStore } from "../../store/app";
 import { getCompilerPath, saveSettings, setAlwaysOnTop } from "../../api/tauri";
 import { LANGUAGE_LIST } from "../../types";
 import type { LanguageId, Settings } from "../../types";
+import { X } from "lucide-react";
 
 // ============================================================
 // Tatpar — Settings Panel
@@ -154,6 +156,44 @@ export function SettingsPanel() {
               onChange={handleAlwaysOnTop}
             />
           </div>
+
+          {/* Fix #22: Close button action */}
+          <div className="settings-row">
+            <div className="settings-label-group">
+              <label className="settings-label" htmlFor="close-action-toggle">Close Button Action</label>
+              <span className="settings-hint">
+                {settings.window.closeAction === "quit"
+                  ? "× closes and fully quits Tatpar"
+                  : "× hides to system tray (Ctrl+Shift+Space to reopen)"}
+              </span>
+            </div>
+            <div className="settings-close-action-toggle">
+              <button
+                id="close-action-minimize"
+                className={`settings-theme-btn${
+                  settings.window.closeAction !== "quit" ? " settings-theme-btn--active" : ""
+                }`}
+                onClick={() =>
+                  update({ window: { ...settings.window, closeAction: "minimize" } })
+                }
+                aria-pressed={settings.window.closeAction !== "quit"}
+              >
+                Minimize to Tray
+              </button>
+              <button
+                id="close-action-quit"
+                className={`settings-theme-btn${
+                  settings.window.closeAction === "quit" ? " settings-theme-btn--active" : ""
+                }`}
+                onClick={() =>
+                  update({ window: { ...settings.window, closeAction: "quit" } })
+                }
+                aria-pressed={settings.window.closeAction === "quit"}
+              >
+                Quit App
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* ── Execution ── */}
@@ -302,5 +342,54 @@ function Toggle({
     >
       <span className="settings-toggle-thumb" />
     </button>
+  );
+}
+
+// ─── Tray Hint Toast — Fix #22 ────────────────────────────────
+//
+// Listens for the "tray-hint" event emitted by Rust's CloseRequested
+// handler and shows a single dismissable notification the first time
+// the window is hidden to the tray. Uses localStorage to ensure it
+// only appears once across sessions.
+
+export function TrayHintToast() {
+  const SEEN_KEY = "tatpar-tray-hint-seen";
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Only register the listener if the user hasn't dismissed it before.
+    if (localStorage.getItem(SEEN_KEY)) return;
+
+    const unlisten = listen("tray-hint", () => {
+      setVisible(true);
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
+
+  const dismiss = () => {
+    setVisible(false);
+    localStorage.setItem(SEEN_KEY, "1");
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div className="tray-hint-toast" role="status" aria-live="polite">
+      <div className="tray-hint-body">
+        <span className="tray-hint-icon">🗂️</span>
+        <div className="tray-hint-text">
+          <strong>Tatpar is still running</strong>
+          <span>Press <kbd>Ctrl+Shift+Space</kbd> or click the tray icon to reopen.</span>
+        </div>
+      </div>
+      <button
+        id="tray-hint-dismiss"
+        className="tray-hint-close"
+        onClick={dismiss}
+        aria-label="Dismiss"
+      >
+        <X size={12} />
+      </button>
+    </div>
   );
 }
